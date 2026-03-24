@@ -1,0 +1,2 @@
+export const SYNC_STATUSES = ["PENDING", "SYNCING", "FAILED", "SYNCED"] as const;
+export const SUBMISSION_STATUSES = ["DRAFT", "SUBMITTED", "BLOCKED", "APPROVED", "REJECTED"] as const;

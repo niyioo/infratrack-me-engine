@@ -1,0 +1,1 @@
+export type SyncQueueStatus = "PENDING" | "SYNCING" | "FAILED" | "SYNCED";

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "InfraTrack Mobile",
+    "slug": "infratrack-mobile",
+    "scheme": "infratrack",
+    "version": "1.0.0",
+    "newArchEnabled": true,
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.infratrack.mobile",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.infratrack.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "InfraTrack uses the camera for live evidence capture.",
+        "NSLocationWhenInUseUsageDescription": "InfraTrack uses location to verify field evidence."
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-location",
+      "expo-camera",
+      "expo-asset",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
