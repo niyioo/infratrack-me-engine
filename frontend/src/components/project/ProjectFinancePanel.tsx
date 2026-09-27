@@ -15,7 +15,7 @@ export function ProjectFinancePanel({ tranches }: { tranches: FundingTranche[] }
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium">{tranche.tranche_name}</p>
-                  <p className="text-xs text-slate-500">₦{Number(tranche.planned_amount).toLocaleString()}</p>
+                  <p className="text-xs text-slate-500">NGN {Number(tranche.planned_amount).toLocaleString()}</p>
                 </div>
                 <TrancheStatusBadge status={tranche.current_status} />
               </div>

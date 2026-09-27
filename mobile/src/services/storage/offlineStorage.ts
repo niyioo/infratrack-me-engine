@@ -19,6 +19,29 @@ export async function setOfflineQueue(items: OfflineEvidenceItem[]) {
 
 export async function addOfflineQueueItem(item: OfflineEvidenceItem) {
   const current = await getOfflineQueue();
+  const existingIndex = current.findIndex(
+    (queuedItem) =>
+      queuedItem.projectId === item.projectId &&
+      queuedItem.milestoneId === item.milestoneId &&
+      queuedItem.fileHash &&
+      queuedItem.fileHash === item.fileHash &&
+      queuedItem.syncStatus !== "SYNCED"
+  );
+
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    updated[existingIndex] = {
+      ...updated[existingIndex],
+      ...item,
+      localId: updated[existingIndex].localId,
+      syncStatus: "PENDING",
+      retryCount: 0,
+      lastError: undefined,
+    };
+    await setOfflineQueue(updated);
+    return;
+  }
+
   current.unshift(item);
   await setOfflineQueue(current);
 }

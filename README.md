@@ -56,6 +56,28 @@ npm install
 npm run dev
 ```
 
+### Local Infra
+```bash
+docker compose up -d db redis
+```
+
+### Background Jobs
+```bash
+cd backend
+.venv\Scripts\python.exe -m celery -A config worker -l info
+.venv\Scripts\python.exe -m celery -A config beat -l info
+```
+
+### Windows One-Command Startup
+```powershell
+.\scripts\start-local-stack.ps1
+```
+This launches:
+- Django API
+- Celery worker
+- Celery beat
+- Frontend Vite dev server
+
 ### Mobile
 ```bash
 cd mobile
@@ -63,6 +85,20 @@ npm install
 # Configure mobile/.env with EXPO_PUBLIC_API_BASE_URL (use LAN IP for physical devices)
 npx expo start -c
 ```
+
+### Citizen Portal
+A separate public site where anyone can anonymously report on an ongoing project.
+It talks only to the unauthenticated `/api/public/` endpoints and shares no code with the staff dashboard.
+```bash
+cd citizen-portal
+npm install
+# Configure citizen-portal/.env with VITE_PUBLIC_API_BASE_URL (see .env.example)
+npm run dev   # http://localhost:5174
+```
+Reports land in the staff dashboard under **Citizen Reports** for triage. When enough *distinct*
+anonymous reporters raise concerns about a project, its risk is raised automatically (never a
+payment block). Only a staff escalation creates a fraud flag, which blocks tranche release.
+Set `NUM_PROXIES` correctly in production, or every citizen will appear to share one IP.
 
 ---
 
@@ -84,8 +120,9 @@ npx expo start -c
 ```
 infratrack-me-engine/
 ├── backend/    # Django API
-├── frontend/   # React web dashboard
-└── mobile/     # Expo field app
+├── frontend/        # React web dashboard (staff)
+├── citizen-portal/  # Public anonymous citizen reporting site
+└── mobile/          # Expo field app
 ```
 
 ---
@@ -93,6 +130,8 @@ infratrack-me-engine/
 ## Notes
 
 - Requires **GeoDjango + PostGIS**. On Windows, install GDAL/GEOS/PROJ via OSGeo4W and set paths in `.env`.
+- Scheduled analytics refresh depends on **Redis + Celery worker + Celery beat** being up.
+- The analytics cache can be manually refreshed with `python manage.py refresh_analytics_snapshots`.
 - For mobile on a physical device, use your machine's **LAN IP**, not `127.0.0.1`.
 - Never commit real secrets or production credentials.
 

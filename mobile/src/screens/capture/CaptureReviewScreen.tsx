@@ -1,29 +1,31 @@
 import {
-  View,
-  Text,
   Image,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { router } from "expo-router";
-
-// ─── Props (wire up real state later) ────────────────────────────────────────
+import { Ionicons } from "@expo/vector-icons";
+import { colors, radius, spacing, typography } from "@/lib/theme/tokens";
 
 interface CaptureReviewScreenProps {
   uri?: string;
   capturedAt?: string;
+  siteAddress?: string | null;
   latitude?: number;
   longitude?: number;
+  networkLabel?: string;
+  syncAdvice?: string;
   onSubmit?: () => void;
   onSaveOffline?: () => void;
+  submitting?: boolean;
+  savingOffline?: boolean;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-NG", {
+  return new Date(iso).toLocaleDateString("en-NG", {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -32,27 +34,46 @@ function formatDate(iso: string) {
 }
 
 function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-NG", {
+  return new Date(iso).toLocaleTimeString("en-NG", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
 }
 
-function formatCoords(lat: number, lng: number) {
-  const latDir = lat >= 0 ? "N" : "S";
-  const lngDir = lng >= 0 ? "E" : "W";
-  return `${Math.abs(lat).toFixed(5)}° ${latDir},  ${Math.abs(lng).toFixed(5)}° ${lngDir}`;
+function formatCoords(lat?: number, lng?: number) {
+  if (lat === undefined || lng === undefined) return "Location unavailable";
+  return `${lat.toFixed(5)}°N, ${lng.toFixed(5)}°E`;
 }
 
-// ─── Meta Row ────────────────────────────────────────────────────────────────
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <View style={styles.sectionLabelRow}>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      <View style={styles.sectionLine} />
+    </View>
+  );
+}
 
-function MetaRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function MetaRow({
+  iconName,
+  label,
+  value,
+  accent,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <View style={styles.metaRow}>
-      <View style={styles.metaIconBox}>
-        <Text style={styles.metaIcon}>{icon}</Text>
+      <View style={[styles.metaIconBox, accent && styles.metaIconBoxAccent]}>
+        <Ionicons
+          name={iconName}
+          size={16}
+          color={accent ? colors.brand : colors.slate500}
+        />
       </View>
       <View style={styles.metaContent}>
         <Text style={styles.metaLabel}>{label}</Text>
@@ -62,190 +83,293 @@ function MetaRow({ icon, label, value }: { icon: string; label: string; value: s
   );
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
+function TrustSignal({
+  iconName,
+  label,
+  value,
+  tone,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  tone: "success" | "warning" | "neutral";
+}) {
+  const toneColors = {
+    success: { bg: "#ECFDF5", border: "#A7F3D0", icon: colors.success, text: "#065F46" },
+    warning: { bg: "#FFFBEB", border: "#FDE68A", icon: colors.warning, text: "#92400E" },
+    neutral: { bg: colors.slate50, border: colors.slate200, icon: colors.slate500, text: colors.slate700 },
+  }[tone];
+
+  return (
+    <View
+      style={[
+        styles.trustCard,
+        { backgroundColor: toneColors.bg, borderColor: toneColors.border },
+      ]}
+    >
+      <Ionicons name={iconName} size={18} color={toneColors.icon} />
+      <View style={styles.trustCardText}>
+        <Text style={[styles.trustLabel, { color: toneColors.text }]}>{label}</Text>
+        <Text style={[styles.trustValue, { color: toneColors.text }]}>{value}</Text>
+      </View>
+    </View>
+  );
+}
 
 export function CaptureReviewScreen({
-  uri = "https://via.placeholder.com/600x400",
-  capturedAt = new Date().toISOString(),
-  latitude = 7.25,
-  longitude = 5.22,
+  uri,
+  capturedAt,
+  siteAddress,
+  latitude,
+  longitude,
+  networkLabel = "Network status unavailable",
+  syncAdvice = "Submitting will sync this evidence immediately. If offline, save to the queue.",
   onSubmit,
   onSaveOffline,
+  submitting = false,
+  savingOffline = false,
 }: CaptureReviewScreenProps) {
+  const hasCapture =
+    !!uri && !!capturedAt && latitude !== undefined && longitude !== undefined;
+  const hasLocation = latitude !== undefined && longitude !== undefined;
+  const isOnline = networkLabel.toLowerCase().includes("online") ||
+    networkLabel.toLowerCase().includes("connected");
+
   return (
     <View style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── HEADER ── */}
+        {/* ── Header ─────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Back</Text>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            hitSlop={12}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.white} />
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
 
           <View style={styles.headerBadge}>
+            <Ionicons name="camera" size={11} color={colors.accent} />
             <Text style={styles.headerBadgeText}>EVIDENCE REVIEW</Text>
           </View>
           <Text style={styles.headerTitle}>Review Capture</Text>
           <Text style={styles.headerSubtitle}>
-            Confirm evidence details before sync or offline save
+            Confirm details before submitting or saving to offline queue.
           </Text>
         </View>
 
         <View style={styles.body}>
-
-          {/* ── IMAGE CARD ── */}
-          <View style={styles.imageCard}>
-            <Image
-              source={{ uri }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            {/* Overlay tag */}
-            <View style={styles.imageOverlayTag}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.imageOverlayText}>Field Evidence</Text>
+          {/* ── Image preview ──────────────────────────────────────── */}
+          {hasCapture ? (
+            <View style={styles.imageCard}>
+              <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+              <View style={styles.imageOverlayTag}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.imageOverlayText}>Field Evidence</Text>
+              </View>
+              {hasLocation && (
+                <View style={styles.imageLocationTag}>
+                  <Ionicons name="location" size={10} color={colors.white} />
+                  <Text style={styles.imageLocationText}>{formatCoords(latitude, longitude)}</Text>
+                </View>
+              )}
             </View>
-          </View>
-
-          {/* ── METADATA CARD ── */}
-          <View style={styles.card}>
-            <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>Capture Details</Text>
-              <View style={styles.sectionLine} />
+          ) : (
+            <View style={styles.emptyCard}>
+              <Ionicons name="image-outline" size={32} color={colors.slate300} />
+              <Text style={styles.emptyTitle}>No capture loaded</Text>
+              <Text style={styles.emptyText}>
+                Return to the capture screen and take a photo before reviewing.
+              </Text>
             </View>
+          )}
 
-            <MetaRow
-              icon="📅"
-              label="Date Captured"
-              value={formatDate(capturedAt)}
-            />
-            <View style={styles.separator} />
-            <MetaRow
-              icon="🕐"
-              label="Time"
-              value={formatTime(capturedAt)}
-            />
-            <View style={styles.separator} />
-            <MetaRow
-              icon="📍"
-              label="GPS Coordinates"
-              value={formatCoords(latitude, longitude)}
-            />
-          </View>
+          {/* ── Capture details ─────────────────────────────────────── */}
+          {hasCapture && (
+            <View style={styles.card}>
+              <SectionLabel label="Capture Details" />
+              <MetaRow
+                iconName="calendar-outline"
+                label="Date Captured"
+                value={formatDate(capturedAt!)}
+              />
+              <View style={styles.separator} />
+              <MetaRow
+                iconName="time-outline"
+                label="Time"
+                value={formatTime(capturedAt!)}
+              />
+              <View style={styles.separator} />
+              <MetaRow
+                iconName="location-outline"
+                label="Site Address"
+                value={siteAddress?.trim() || "No site address linked"}
+                accent={!!siteAddress?.trim()}
+              />
+              <View style={styles.separator} />
+              <MetaRow
+                iconName="navigate-outline"
+                label="Coordinates"
+                value={formatCoords(latitude, longitude)}
+                accent={hasLocation}
+              />
+            </View>
+          )}
 
-          {/* ── STATUS NOTICE ── */}
+          {/* ── Trust signals ─────────────────────────────────────── */}
+          {hasCapture && (
+            <View style={styles.card}>
+              <SectionLabel label="Trust Signals" />
+              <View style={styles.trustGrid}>
+                <TrustSignal
+                  iconName={hasLocation ? "shield-checkmark" : "shield-outline"}
+                  label="Location"
+                  value={hasLocation ? "Verified" : "Missing"}
+                  tone={hasLocation ? "success" : "warning"}
+                />
+                <TrustSignal
+                  iconName={isOnline ? "wifi" : "wifi-outline"}
+                  label="Connectivity"
+                  value={isOnline ? "Online" : "Offline"}
+                  tone={isOnline ? "success" : "warning"}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* ── Sync advice ───────────────────────────────────────── */}
           <View style={styles.noticeCard}>
-            <Text style={styles.noticeIcon}>ℹ️</Text>
-            <Text style={styles.noticeText}>
-              Submitting will sync this evidence immediately. If offline, use{" "}
-              <Text style={styles.noticeBold}>Save to Queue</Text> — it will
-              auto-sync when connectivity is restored.
-            </Text>
+            <Ionicons name="information-circle" size={18} color="#2563EB" />
+            <Text style={styles.noticeText}>{syncAdvice}</Text>
           </View>
-
         </View>
       </ScrollView>
 
-      {/* ── STICKY ACTIONS ── */}
+      {/* ── Footer actions ────────────────────────────────────────── */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.submitBtn}
+          style={[styles.submitBtn, (!hasCapture || submitting || savingOffline) && styles.btnDisabled]}
           onPress={onSubmit}
-          activeOpacity={0.88}
+          disabled={!hasCapture || submitting || savingOffline}
+          activeOpacity={0.85}
         >
-          <Text style={styles.submitIcon}>☁️</Text>
-          <Text style={styles.submitText}>Submit Now</Text>
+          {submitting ? (
+            <View style={styles.btnInner}>
+              <Ionicons name="cloud-upload-outline" size={18} color={colors.white} />
+              <Text style={styles.submitText}>Submitting…</Text>
+            </View>
+          ) : (
+            <View style={styles.btnInner}>
+              <Ionicons name="cloud-upload" size={18} color={colors.white} />
+              <Text style={styles.submitText}>Submit Now</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.queueBtn}
+          style={[styles.queueBtn, (!hasCapture || submitting || savingOffline) && styles.btnDisabled]}
           onPress={onSaveOffline}
-          activeOpacity={0.88}
+          disabled={!hasCapture || submitting || savingOffline}
+          activeOpacity={0.85}
         >
-          <Text style={styles.queueIcon}>💾</Text>
-          <Text style={styles.queueText}>Save to Offline Queue</Text>
+          {savingOffline ? (
+            <View style={styles.btnInner}>
+              <Ionicons name="save-outline" size={18} color={colors.slate600} />
+              <Text style={styles.queueText}>Saving…</Text>
+            </View>
+          ) : (
+            <View style={styles.btnInner}>
+              <Ionicons name="save-outline" size={18} color={colors.slate600} />
+              <Text style={styles.queueText}>Save to Offline Queue</Text>
+            </View>
+          )}
         </TouchableOpacity>
+
+        <Text style={styles.footerHint}>
+          {isOnline
+            ? "Connected — submit immediately or queue for batch sync."
+            : "Offline — save to queue and submit when connectivity is restored."}
+        </Text>
       </View>
     </View>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
   scroll: {
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
-
-  // Header
   header: {
-    backgroundColor: "#0F172A",
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 28,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing.xl,
+    paddingBottom: spacing["2xl"],
+    gap: 10,
   },
   backBtn: {
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
   },
   backText: {
-    color: "#60A5FA",
-    fontSize: 13,
+    ...typography.caption,
+    color: colors.slate300,
     fontWeight: "600",
   },
   headerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     alignSelf: "flex-start",
-    backgroundColor: "#1E3A5F",
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginBottom: 10,
+    backgroundColor: "#132B4A",
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   headerBadgeText: {
-    color: "#60A5FA",
+    color: colors.accent,
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
-    color: "#F8FAFC",
-    letterSpacing: -0.4,
+    color: colors.white,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: "#94A3B8",
-    marginTop: 4,
+    color: colors.slate400,
     lineHeight: 18,
   },
-
-  // Body
   body: {
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-
-  // Image card
   imageCard: {
-    borderRadius: 16,
+    borderRadius: radius.lg,
     overflow: "hidden",
-    shadowColor: "#0F172A",
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 14,
+    elevation: 6,
     position: "relative",
   },
   image: {
     width: "100%",
-    height: 240,
-    backgroundColor: "#CBD5E1",
+    height: 260,
+    backgroundColor: colors.slate200,
   },
   imageOverlayTag: {
     position: "absolute",
@@ -253,11 +377,11 @@ const styles = StyleSheet.create({
     left: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
     backgroundColor: "rgba(15,23,42,0.75)",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 20,
+    borderRadius: radius.pill,
   },
   recordingDot: {
     width: 7,
@@ -266,40 +390,75 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF4444",
   },
   imageOverlayText: {
-    color: "#F8FAFC",
+    color: colors.white,
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
-
-  // Metadata card
+  imageLocationTag: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(15,23,42,0.65)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  imageLocationText: {
+    color: colors.slate200,
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  emptyCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: 32,
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.slate500,
+    textAlign: "center",
+  },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     padding: 18,
-    shadowColor: "#0F172A",
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
     gap: 14,
   },
-  sectionHeading: {
+  sectionLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  sectionTitle: {
-    fontSize: 11,
+  sectionLabel: {
+    fontSize: 10,
     fontWeight: "700",
-    color: "#94A3B8",
-    letterSpacing: 1.2,
+    color: colors.slate400,
+    letterSpacing: 1.1,
     textTransform: "uppercase",
   },
   sectionLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
   metaRow: {
     flexDirection: "row",
@@ -310,19 +469,22 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate50,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.slate100,
   },
-  metaIcon: {
-    fontSize: 17,
+  metaIconBoxAccent: {
+    backgroundColor: colors.brandSoft,
+    borderColor: colors.brandMuted,
   },
   metaContent: {
     flex: 1,
   },
   metaLabel: {
-    fontSize: 11,
-    color: "#94A3B8",
+    fontSize: 10,
+    color: colors.slate400,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -330,15 +492,42 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     fontSize: 14,
-    color: "#1E293B",
+    color: colors.ink,
     fontWeight: "600",
+    lineHeight: 19,
   },
   separator: {
     height: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.slate100,
+    marginHorizontal: -2,
   },
-
-  // Notice
+  trustGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  trustCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  trustCardText: {
+    flex: 1,
+    gap: 2,
+  },
+  trustLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  trustValue: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
   noticeCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -349,77 +538,68 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
-  noticeIcon: {
-    fontSize: 15,
-    marginTop: 1,
-  },
   noticeText: {
     flex: 1,
     fontSize: 12,
-    color: "#3B82F6",
-    lineHeight: 18,
-  },
-  noticeBold: {
-    fontWeight: "700",
     color: "#1D4ED8",
+    lineHeight: 18,
+    fontWeight: "500",
   },
-
-  // Footer
   footer: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.xl,
     paddingTop: 14,
-    paddingBottom: 24,
+    paddingBottom: 28,
     borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
+    borderTopColor: colors.slate100,
     gap: 10,
-    shadowColor: "#0F172A",
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 10,
+    elevation: 8,
   },
   submitBtn: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#2563EB",
-    borderRadius: 14,
-    paddingVertical: 15,
-    shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: colors.brand,
+    borderRadius: radius.md,
+    paddingVertical: 16,
   },
-  submitIcon: {
-    fontSize: 16,
+  btnInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   submitText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.2,
+    color: colors.white,
+    letterSpacing: 0.1,
   },
   queueBtn: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate50,
     borderWidth: 1.5,
-    borderColor: "#CBD5E1",
-    borderRadius: 14,
+    borderColor: colors.slate200,
+    borderRadius: radius.md,
     paddingVertical: 14,
-  },
-  queueIcon: {
-    fontSize: 16,
   },
   queueText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#475569",
+    color: colors.slate600,
     letterSpacing: 0.1,
+  },
+  btnDisabled: {
+    opacity: 0.45,
+  },
+  footerHint: {
+    textAlign: "center",
+    fontSize: 11,
+    color: colors.slate400,
+    fontWeight: "500",
+    lineHeight: 15,
   },
 });

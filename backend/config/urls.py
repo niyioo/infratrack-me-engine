@@ -4,8 +4,10 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from apps.common.throttles import LoginRateThrottle
 
-from apps.accounts.views import UserViewSet, RoleViewSet
+from apps.accounts.views import CurrentUserView, UserViewSet, RoleViewSet
 from apps.organizations.views import AgencyViewSet, ContractorViewSet
 from apps.projects.views import ProjectViewSet
 from apps.milestones.views import (
@@ -30,6 +32,18 @@ from apps.audits.views import (
     SuspiciousActivityLogViewSet,
 )
 from apps.analytics.views import ProjectMetricSnapshotViewSet
+from apps.notifications.views import NotificationViewSet
+from apps.citizen_reports.views import (
+    CitizenReportViewSet,
+    PublicCitizenReportCreateView,
+    PublicCitizenReportTrackView,
+    PublicProjectViewSet,
+)
+
+# Anonymous citizen-facing API, kept under its own prefix so it can be
+# routed, rate-limited and monitored separately from the staff API.
+public_router = DefaultRouter()
+public_router.register(r"projects", PublicProjectViewSet, basename="public-projects")
 
 router = DefaultRouter()
 router.register(r"users", UserViewSet, basename="users")
@@ -52,12 +66,26 @@ router.register(r"audit-events", AuditEventViewSet, basename="audit-events")
 router.register(r"integrity-checks", IntegrityCheckLogViewSet, basename="integrity-checks")
 router.register(r"suspicious-activities", SuspiciousActivityLogViewSet, basename="suspicious-activities")
 router.register(r"project-metric-snapshots", ProjectMetricSnapshotViewSet, basename="project-metric-snapshots")
+router.register(r"notifications", NotificationViewSet, basename="notifications")
+router.register(r"citizen-reports", CitizenReportViewSet, basename="citizen-reports")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/login/", TokenObtainPairView.as_view(throttle_classes=[LoginRateThrottle]), name="token_obtain_pair"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/auth/me/", CurrentUserView.as_view(), name="current_user"),
+    path("api/public/citizen-reports/", PublicCitizenReportCreateView.as_view(), name="public-citizen-report-create"),
+    path(
+        "api/public/citizen-reports/<str:tracking_code>/",
+        PublicCitizenReportTrackView.as_view(),
+        name="public-citizen-report-track",
+    ),
+    path("api/public/", include(public_router.urls)),
     path("api/", include(router.urls)),
+    # OpenAPI / documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
 if settings.DEBUG:

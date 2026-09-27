@@ -1,60 +1,77 @@
-import { Pressable, Text, StyleSheet } from "react-native";
+import { Pressable, Text, StyleSheet, View, ActivityIndicator } from "react-native";
+import { colors, radius, typography } from "@/lib/theme/tokens";
 
 export function AppButton(props: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "ghost";
+  loading?: boolean;
 }) {
   const isPrimary = (props.variant ?? "primary") === "primary";
+  const isGhost = props.variant === "ghost";
 
   return (
     <Pressable
       onPress={props.onPress}
-      disabled={props.disabled}
+      disabled={props.disabled || props.loading}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.secondary,
-        props.disabled && styles.disabled,
+        isPrimary ? styles.primary : isGhost ? styles.ghost : styles.secondary,
+        (props.disabled || props.loading) && styles.disabled,
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelSecondary]}>
-        {props.title}
-      </Text>
+      <View style={styles.content}>
+        {props.loading ? <ActivityIndicator size="small" color={isPrimary ? colors.white : colors.ink} /> : null}
+        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelSecondary]}>
+          {props.title}
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    minHeight: 52,
+    borderRadius: radius.md,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   primary: {
-    backgroundColor: "#0F172A",
+    backgroundColor: colors.brand,
   },
   secondary: {
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+  },
+  ghost: {
+    backgroundColor: "transparent",
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...typography.body,
+    fontWeight: "700",
     textAlign: "center",
   },
   labelPrimary: {
-    color: "#FFFFFF",
+    color: colors.white,
   },
   labelSecondary: {
-    color: "#0F172A",
+    color: colors.ink,
   },
 });

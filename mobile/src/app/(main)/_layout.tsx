@@ -2,6 +2,8 @@ import { Tabs } from "expo-router";
 import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Platform, StyleSheet } from "react-native";
+import { InfraTrackBrand } from "@/components/brand/InfraTrackBrand";
+import { colors, radius } from "@/lib/theme/tokens";
 
 function TabIcon({
   name,
@@ -25,16 +27,16 @@ export default function MainLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#2563EB",
-        tabBarInactiveTintColor: "#94A3B8",
+        tabBarActiveTintColor: colors.brand,
+        tabBarInactiveTintColor: colors.slate400,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: "#F1F5F9",
-          height: Platform.OS === "ios" ? 84 : 64,
+          borderTopColor: colors.slate100,
+          height: Platform.OS === "ios" ? 88 : 68,
           paddingBottom: Platform.OS === "ios" ? 24 : 8,
           paddingTop: 8,
-          shadowColor: "#0F172A",
+          shadowColor: colors.ink,
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
@@ -50,25 +52,87 @@ export default function MainLayout() {
           paddingTop: 4,
         },
         headerStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
         },
-        headerTitleStyle: {
-          fontSize: 16,
-          fontWeight: "700",
-          color: "#0F172A",
-        },
+        headerTitle: () => <InfraTrackBrand size="sm" />,
         headerShadowVisible: false,
-        headerTintColor: "#0F172A",
+        headerTintColor: colors.ink,
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "My Assignments",
-          tabBarLabel: "Assignments",
+          title: "Home",
+          tabBarLabel: "Home",
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon
-              name={focused ? "clipboard" : "clipboard-outline"}
+              name={focused ? "grid" : "grid-outline"}
+              color={color}
+              size={size}
+              focused={focused}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="projects"
+        options={{
+          title: "Projects",
+          tabBarLabel: "Projects",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? "briefcase" : "briefcase-outline"}
+              color={color}
+              size={size}
+              focused={focused}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="evidence"
+        options={{
+          title: "Evidence",
+          tabBarLabel: "Evidence",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? "cloud-upload" : "cloud-upload-outline"}
+              color={color}
+              size={size}
+              focused={focused}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="capture"
+        options={{
+          title: "Capture",
+          tabBarLabel: "Capture",
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.captureIconWrap, focused && styles.captureIconWrapActive]}>
+              <Ionicons
+                name={focused ? "camera" : "camera-outline"}
+                color={focused ? colors.white : color}
+                size={size - 1}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="alerts"
+        options={{
+          title: "Alerts",
+          tabBarLabel: "Alerts",
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? "warning" : "warning-outline"}
               color={color}
               size={size}
               focused={focused}
@@ -102,9 +166,9 @@ export default function MainLayout() {
       />
 
       <Tabs.Screen
-        name="capture"
+        name="capture-review"
         options={{
-          title: "Live Capture",
+          title: "Review Capture",
           headerShown: false,
           href: null,
         }}
@@ -117,11 +181,22 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radius.pill,
     justifyContent: "center",
     alignItems: "center",
   },
   iconWrapActive: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.infoSoft,
+  },
+  captureIconWrap: {
+    width: 52,
+    height: 36,
+    borderRadius: radius.pill,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.brandSoft,
+  },
+  captureIconWrapActive: {
+    backgroundColor: colors.brand,
   },
 });

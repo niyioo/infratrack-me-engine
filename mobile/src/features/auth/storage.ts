@@ -24,7 +24,11 @@ export async function clearTokens() {
   await SecureStore.deleteItemAsync(USER_KEY);
 }
 
-export async function setStoredUser(user: User) {
+export async function setStoredUser(user: User | null) {
+  if (!user) {
+    await SecureStore.deleteItemAsync(USER_KEY);
+    return;
+  }
   await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
 }
 

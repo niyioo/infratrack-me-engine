@@ -14,6 +14,7 @@ class EvidenceSubmission(models.Model):
         max_length=30, choices=SubmissionStatus.choices, default=SubmissionStatus.DRAFT
     )
     notes = models.TextField(blank=True)
+    idempotency_key = models.CharField(max_length=128, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     device_id = models.CharField(max_length=255, blank=True)
     device_platform = models.CharField(max_length=50, blank=True)
@@ -27,6 +28,19 @@ class EvidenceSubmission(models.Model):
     requires_exception_review = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submitted_by_user", "idempotency_key"],
+                condition=models.Q(idempotency_key__gt=""),
+                name="uniq_evid_idem_per_user",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["project", "milestone", "-created_at"], name="evid_proj_mst_cr_idx"),
+            models.Index(fields=["submitted_by_user", "idempotency_key"], name="evid_submit_idem_idx"),
+        ]
 
 
 def evidence_upload_path(instance, filename):

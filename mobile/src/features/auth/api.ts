@@ -8,12 +8,7 @@ export async function login(payload: { email: string; password: string }) {
   return data;
 }
 
-export async function fetchUsers() {
-  const { data } = await apiClient.get<User[]>(endpoints.users);
+export async function fetchCurrentUser() {
+  const { data } = await apiClient.get<User>(endpoints.auth.me);
   return data;
-}
-
-export async function fetchCurrentUserByEmail(email: string) {
-  const users = await fetchUsers();
-  return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null;
 }

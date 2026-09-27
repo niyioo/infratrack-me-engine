@@ -1,6 +1,9 @@
 export type FundingTranche = {
   id: number;
   project: number;
+  project_code: string;
+  project_title: string;
+  project_status: string;
   tranche_number: number;
   tranche_name: string;
   planned_amount: string;
@@ -24,7 +27,10 @@ export type EligibilityResult = {
 export type Disbursement = {
   id: number;
   project: number;
+  project_code: string;
+  project_title: string;
   tranche: number;
+  tranche_name: string;
   amount: string;
   payment_reference: string;
   release_date: string;

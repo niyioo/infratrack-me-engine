@@ -1,175 +1,265 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { useMemo } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { LiveCameraCapture } from "@/components/capture/LiveCameraCapture";
 import { GeofenceStatusBanner } from "@/components/capture/GeofenceStatusBanner";
-import { LocationPermissionGate } from "@/components/location/LocationPermissionGate";
 import { AccuracyNotice } from "@/components/location/AccuracyNotice";
+import { LocationPermissionGate } from "@/components/location/LocationPermissionGate";
+import { AppCard } from "@/components/ui/AppCard";
+import { AppScreen } from "@/components/ui/AppScreen";
 import { useCurrentLocation } from "@/hooks/useCurrentLocation";
 import { validateGeofence } from "@/features/geofence/service";
+import { setCaptureDraft } from "@/features/evidence/captureDraft";
+import { colors, radius, spacing, typography } from "@/lib/theme/tokens";
+
+function buildIdempotencyKey() {
+  return `capture-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export function CaptureScreen() {
-  const [asset, setAsset] = useState<any | null>(null);
+  const params = useLocalSearchParams<{
+    projectId?: string;
+    milestoneId?: string;
+    siteAddress?: string;
+    siteLat?: string;
+    siteLng?: string;
+    radiusMeters?: string;
+  }>();
   const { location } = useCurrentLocation();
 
-  const geofence = location
-    ? validateGeofence({
-        siteLat: 7.25,
-        siteLng: 5.22,
-        currentLat: location.coords.latitude,
-        currentLng: location.coords.longitude,
-        radiusMeters: 50,
-        accuracyMeters: location.coords.accuracy,
-      })
-    : null;
+  const siteLat = params.siteLat ? Number(params.siteLat) : null;
+  const siteLng = params.siteLng ? Number(params.siteLng) : null;
+  const radiusMeters = params.radiusMeters ? Number(params.radiusMeters) : 50;
+
+  const geofence = useMemo(() => {
+    if (!location || siteLat === null || siteLng === null) return null;
+    return validateGeofence({
+      siteLat,
+      siteLng,
+      currentLat: location.coords.latitude,
+      currentLng: location.coords.longitude,
+      radiusMeters,
+      accuracyMeters: location.coords.accuracy,
+    });
+  }, [location, siteLat, siteLng, radiusMeters]);
+
+  const hasGeofenceContext = siteLat !== null && siteLng !== null;
+  const canCapture = !hasGeofenceContext || !geofence || geofence.withinGeofence;
+  const gpsReady = !!location;
 
   return (
-    <View style={styles.screen}>
-
-      {/* ── HEADER ── */}
+    <AppScreen scroll contentContainerStyle={styles.content} style={styles.screen}>
+      {/* ── Header ────────────────────────────────────────────────── */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+        {/* Back row */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} hitSlop={12}>
+          <Ionicons name="chevron-back" size={20} color={colors.white} />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        <View style={styles.headerRow}>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>FIELD CAPTURE</Text>
+        {/* Title row */}
+        <View style={styles.titleRow}>
+          <View style={styles.titleLeft}>
+            <View style={styles.captureChip}>
+              <Ionicons name="camera" size={12} color={colors.accent} />
+              <Text style={styles.captureChipText}>Field Capture</Text>
+            </View>
+            <Text style={styles.headerTitle}>Capture Evidence</Text>
           </View>
 
-          {/* GPS live indicator */}
-          <View style={styles.gpsPill}>
-            <View style={[styles.gpsDot, { backgroundColor: location ? "#10B981" : "#F59E0B" }]} />
-            <Text style={styles.gpsText}>{location ? "GPS Active" : "Acquiring…"}</Text>
+          {/* GPS status pill */}
+          <View style={[styles.gpsPill, gpsReady ? styles.gpsPillReady : styles.gpsPillWaiting]}>
+            <View
+              style={[
+                styles.gpsDot,
+                { backgroundColor: gpsReady ? colors.success : colors.warning },
+              ]}
+            />
+            <Text style={styles.gpsText}>{gpsReady ? "GPS Ready" : "Locating…"}</Text>
           </View>
         </View>
 
-        <Text style={styles.headerTitle}>Capture Evidence</Text>
-        <Text style={styles.headerSubtitle}>
-          Stay within the site boundary before capturing
-        </Text>
+        {params.siteAddress ? (
+          <View style={styles.siteRow}>
+            <Ionicons name="location-outline" size={13} color={colors.slate400} />
+            <Text style={styles.siteText} numberOfLines={1}>
+              {params.siteAddress}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      {/* ── BODY ── */}
+      {/* ── Body ──────────────────────────────────────────────────── */}
       <View style={styles.body}>
         <LocationPermissionGate>
-
-          {/* GEOFENCE BANNER */}
+          {/* Geofence banner */}
           {geofence ? (
-            <View style={styles.section}>
-              <GeofenceStatusBanner
-                withinGeofence={geofence.withinGeofence}
-                distanceMeters={geofence.distanceMeters}
-                radiusMeters={geofence.radiusMeters}
-                warning={geofence.warning}
-              />
+            <GeofenceStatusBanner
+              withinGeofence={geofence.withinGeofence}
+              distanceMeters={geofence.distanceMeters}
+              radiusMeters={geofence.radiusMeters}
+              warning={geofence.warning}
+            />
+          ) : hasGeofenceContext ? (
+            <View style={styles.statusCard}>
+              <Ionicons name="radio-outline" size={18} color={colors.brand} />
+              <View style={styles.statusCardText}>
+                <Text style={styles.statusCardTitle}>Preparing geofence…</Text>
+                <Text style={styles.statusCardBody}>
+                  Calculating the approved site boundary for this project.
+                </Text>
+              </View>
             </View>
           ) : (
-            <View style={styles.geofencePlaceholder}>
-              <View style={styles.geofencePulse} />
-              <Text style={styles.geofencePlaceholderText}>
-                Calculating geofence…
-              </Text>
+            <View style={styles.statusCard}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={colors.success} />
+              <View style={styles.statusCardText}>
+                <Text style={styles.statusCardTitle}>Camera ready</Text>
+                <Text style={styles.statusCardBody}>
+                  Link this capture to a project for full geo-verification.
+                </Text>
+              </View>
             </View>
           )}
 
-          {/* ACCURACY NOTICE */}
-          <View style={styles.section}>
-            <AccuracyNotice accuracy={location?.coords.accuracy} />
-          </View>
+          <AccuracyNotice accuracy={location?.coords.accuracy} />
 
-          {/* CAMERA CAPTURE */}
-          <View style={styles.cameraCard}>
-            <View style={styles.cameraCardHeader}>
-              <Text style={styles.cameraCardLabel}>📷  Camera</Text>
-              <View style={styles.cameraCardBadge}>
-                <Text style={styles.cameraCardBadgeText}>TAP TO CAPTURE</Text>
+          {/* Camera card */}
+          <AppCard>
+            <View style={styles.cameraHeader}>
+              <View style={styles.cameraHeaderLeft}>
+                <Text style={styles.cameraTitle}>Live Camera</Text>
+                <Text style={styles.cameraSubtitle}>
+                  Geo-stamped field evidence capture
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.statusPill,
+                  canCapture ? styles.statusPillReady : styles.statusPillBlocked,
+                ]}
+              >
+                <Ionicons
+                  name={canCapture ? "checkmark-circle" : "ban-outline"}
+                  size={12}
+                  color={canCapture ? colors.success : colors.danger}
+                />
+                <Text
+                  style={[
+                    styles.statusPillText,
+                    { color: canCapture ? colors.success : colors.danger },
+                  ]}
+                >
+                  {canCapture ? "Ready" : "Blocked"}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.cameraWrapper}>
-              <LiveCameraCapture onCaptured={setAsset} />
-            </View>
-          </View>
-
-          {/* CAPTURE READY BANNER */}
-          {asset ? (
-            <TouchableOpacity
-              style={styles.readyBanner}
-              onPress={() => router.push("/(main)/capture/review")}
-              activeOpacity={0.85}
-            >
-              <View style={styles.readyLeft}>
-                <Text style={styles.readyIcon}>✅</Text>
-                <View>
-                  <Text style={styles.readyTitle}>Capture ready</Text>
-                  <Text style={styles.readySubtitle}>Tap to review before submitting</Text>
-                </View>
-              </View>
-              <Text style={styles.readyArrow}>→</Text>
-            </TouchableOpacity>
-          ) : null}
-
+            <LiveCameraCapture
+              onCaptured={(asset) => {
+                if (!asset || !location) return;
+                setCaptureDraft({
+                  idempotencyKey: buildIdempotencyKey(),
+                  uri: asset.uri,
+                  capturedAt: new Date().toISOString(),
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  siteAddress: params.siteAddress,
+                  accuracyMeters: location.coords.accuracy,
+                  projectId: params.projectId ? Number(params.projectId) : undefined,
+                  milestoneId: params.milestoneId ? Number(params.milestoneId) : undefined,
+                  siteLat,
+                  siteLng,
+                  radiusMeters,
+                });
+                router.push("/(main)/capture-review");
+              }}
+              disabled={!canCapture}
+            />
+          </AppCard>
         </LocationPermissionGate>
       </View>
-
-    </View>
+    </AppScreen>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
-
-  // Header
+  content: {
+    flexGrow: 1,
+  },
   header: {
-    backgroundColor: "#0F172A",
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 28,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing.xl,
+    paddingBottom: spacing["2xl"],
+    gap: spacing.md,
   },
   backBtn: {
-    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
   },
   backText: {
-    color: "#60A5FA",
-    fontSize: 13,
+    ...typography.caption,
+    color: colors.slate300,
     fontWeight: "600",
   },
-  headerRow: {
+  titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    gap: spacing.md,
   },
-  headerBadge: {
-    backgroundColor: "#1E3A5F",
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  titleLeft: {
+    flex: 1,
+    gap: 8,
   },
-  headerBadgeText: {
-    color: "#60A5FA",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-  },
-
-  // GPS pill
-  gpsPill: {
+  captureChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "#1E293B",
-    borderWidth: 1,
-    borderColor: "#334155",
-    borderRadius: 20,
+    alignSelf: "flex-start",
+    backgroundColor: "#132B4A",
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,
+  },
+  captureChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.accent,
+    letterSpacing: 0.3,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: colors.white,
+    letterSpacing: -0.3,
+  },
+  gpsPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  gpsPillReady: {
+    backgroundColor: "#0C2A0C",
+    borderWidth: 1,
+    borderColor: "#166534",
+  },
+  gpsPillWaiting: {
+    backgroundColor: "#2A1F06",
+    borderWidth: 1,
+    borderColor: "#92400E",
   },
   gpsDot: {
     width: 7,
@@ -177,132 +267,89 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   gpsText: {
+    ...typography.caption,
+    color: colors.slate100,
     fontSize: 11,
-    fontWeight: "700",
-    color: "#94A3B8",
   },
-
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#F8FAFC",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#94A3B8",
-    marginTop: 4,
-    lineHeight: 18,
-  },
-
-  // Body
-  body: {
-    flex: 1,
-    padding: 16,
-    gap: 12,
-  },
-  section: {
-    // wrapper to keep gap consistent
-  },
-
-  // Geofence loading placeholder
-  geofencePlaceholder: {
+  siteRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    gap: 6,
   },
-  geofencePulse: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#F59E0B",
-  },
-  geofencePlaceholderText: {
-    fontSize: 13,
-    color: "#94A3B8",
+  siteText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.slate400,
     fontWeight: "500",
   },
-
-  // Camera card
-  cameraCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+  body: {
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-  cameraCardHeader: {
+  statusCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  cameraCardLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  cameraCardBadge: {
-    backgroundColor: "#EFF6FF",
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  cameraCardBadgeText: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#2563EB",
-    letterSpacing: 1,
-  },
-  cameraWrapper: {
-    minHeight: 260,
-    backgroundColor: "#0F172A",
-  },
-
-  // Capture ready banner
-  readyBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#ECFDF5",
-    borderWidth: 1.5,
-    borderColor: "#6EE7B7",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  readyLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    padding: spacing.lg,
   },
-  readyIcon: {
-    fontSize: 22,
+  statusCardText: {
+    flex: 1,
+    gap: 3,
   },
-  readyTitle: {
+  statusCardTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#065F46",
+    color: colors.ink,
   },
-  readySubtitle: {
+  statusCardBody: {
     fontSize: 12,
-    color: "#6EE7B7",
-    marginTop: 1,
+    color: colors.slate500,
+    lineHeight: 17,
   },
-  readyArrow: {
-    fontSize: 18,
-    color: "#10B981",
+  cameraHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  cameraHeaderLeft: {
+    flex: 1,
+    gap: 3,
+  },
+  cameraTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  cameraSubtitle: {
+    fontSize: 12,
+    color: colors.slate500,
+    fontWeight: "500",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+  statusPillReady: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
+  },
+  statusPillBlocked: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  statusPillText: {
+    fontSize: 12,
     fontWeight: "700",
   },
 });

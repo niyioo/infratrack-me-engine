@@ -1,16 +1,24 @@
 import { Link } from "react-router-dom";
-import type { Project } from "@/features/projects/types";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { ProjectStatusBadge } from "@/components/status/ProjectStatusBadge";
 import { RiskBadge } from "@/components/status/RiskBadge";
-import { Card } from "@/components/ui/Card";
+import type { Project } from "@/features/projects/types";
+
+type ProjectListItemModel = Pick<
+  Project,
+  "id" | "title" | "project_code" | "state" | "lga" | "budget_amount" | "current_status" | "risk_status"
+>;
 
 type Props = {
   title?: string;
-  projects: Project[];
+  projects: ProjectListItemModel[];
   loading?: boolean;
+  onEditProject?: (project: ProjectListItemModel) => void;
+  onDeleteProject?: (project: ProjectListItemModel) => void;
 };
 
-export function ProjectsTable({ title = "Projects", projects, loading }: Props) {
+export function ProjectsTable({ title = "Projects", projects, loading, onEditProject, onDeleteProject }: Props) {
   return (
     <Card>
       <div className="border-b border-slate-200 px-5 py-4">
@@ -31,9 +39,17 @@ export function ProjectsTable({ title = "Projects", projects, loading }: Props) 
           </thead>
           <tbody>
             {loading ? (
-              <tr><td className="px-5 py-6" colSpan={6}>Loading...</td></tr>
+              <tr>
+                <td className="px-5 py-6" colSpan={6}>
+                  Loading...
+                </td>
+              </tr>
             ) : projects.length === 0 ? (
-              <tr><td className="px-5 py-6" colSpan={6}>No projects found.</td></tr>
+              <tr>
+                <td className="px-5 py-6" colSpan={6}>
+                  No projects found.
+                </td>
+              </tr>
             ) : (
               projects.map((project) => (
                 <tr key={project.id} className="border-t border-slate-100">
@@ -44,11 +60,37 @@ export function ProjectsTable({ title = "Projects", projects, loading }: Props) 
                     </div>
                   </td>
                   <td className="px-5 py-4">{project.state}, {project.lga}</td>
-                  <td className="px-5 py-4">₦{Number(project.budget_amount).toLocaleString()}</td>
-                  <td className="px-5 py-4"><ProjectStatusBadge status={project.current_status} /></td>
-                  <td className="px-5 py-4"><RiskBadge risk={project.risk_status} /></td>
+                  <td className="px-5 py-4">NGN {Number(project.budget_amount).toLocaleString()}</td>
+                  <td className="px-5 py-4">
+                    <ProjectStatusBadge status={project.current_status} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <RiskBadge risk={project.risk_status} />
+                  </td>
                   <td className="px-5 py-4 text-right">
-                    <Link className="text-blue-600" to={`/projects/${project.id}`}>Open</Link>
+                    <div className="flex justify-end gap-2">
+                      <Link className="px-2 py-1 text-sm font-medium text-brand" to={`/projects/${project.id}`}>
+                        Open
+                      </Link>
+                      {onEditProject ? (
+                        <Button
+                          type="button"
+                          className="border border-slate-300 bg-white px-3 py-1 text-slate-900 shadow-none hover:bg-slate-50"
+                          onClick={() => onEditProject(project)}
+                        >
+                          Edit
+                        </Button>
+                      ) : null}
+                      {onDeleteProject ? (
+                        <Button
+                          type="button"
+                          className="bg-red-600 px-3 py-1 shadow-none hover:bg-red-700"
+                          onClick={() => onDeleteProject(project)}
+                        >
+                          Delete
+                        </Button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))

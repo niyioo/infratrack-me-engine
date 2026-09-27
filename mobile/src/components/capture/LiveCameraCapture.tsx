@@ -2,7 +2,13 @@ import { View, Text, StyleSheet } from "react-native";
 import { AppButton } from "@/components/ui/AppButton";
 import { capturePhotoLive } from "@/services/camera/captureService";
 
-export function LiveCameraCapture({ onCaptured }: { onCaptured: (asset: any) => void }) {
+export function LiveCameraCapture({
+  onCaptured,
+  disabled = false,
+}: {
+  onCaptured: (asset: any) => void;
+  disabled?: boolean;
+}) {
   async function handleCapture() {
     const asset = await capturePhotoLive();
     if (asset) onCaptured(asset);
@@ -13,7 +19,7 @@ export function LiveCameraCapture({ onCaptured }: { onCaptured: (asset: any) => 
       <Text style={styles.title}>Live Camera Capture</Text>
       <Text style={styles.sub}>Capture evidence directly from the device camera.</Text>
       <View style={styles.btnWrap}>
-        <AppButton title="Open Camera" onPress={handleCapture} />
+        <AppButton title="Open Camera" onPress={handleCapture} disabled={disabled} />
       </View>
     </View>
   );

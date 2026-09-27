@@ -1,12 +1,16 @@
-import { getStoredUser } from "./store";
+import { useSyncExternalStore } from "react";
+import { getAuthSnapshot, subscribeToAuthStore } from "./store";
 
 export function useAuth() {
-  const user = getStoredUser();
+  const snapshot = useSyncExternalStore(subscribeToAuthStore, getAuthSnapshot, getAuthSnapshot);
+  const user = snapshot.user;
   const roles = user?.roles?.map((role) => role.code) ?? [];
+  const capabilities = user?.capabilities ?? [];
 
   return {
     user,
     roles,
-    isAuthenticated: !!localStorage.getItem("access_token")
+    capabilities,
+    isAuthenticated: !!snapshot.accessToken && !!user
   };
 }

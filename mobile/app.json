@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "InfraTrack Mobile",
+    "name": "InfraTrack",
     "slug": "infratrack-mobile",
     "scheme": "infratrack",
     "version": "1.0.0",
+    "icon": "./assets/app-icon.png",
     "newArchEnabled": true,
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -12,6 +13,10 @@
     ],
     "android": {
       "package": "com.infratrack.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "CAMERA"
