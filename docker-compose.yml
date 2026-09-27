@@ -41,6 +41,9 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
       CORS_ALLOW_ALL_ORIGINS: "True"
       ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
     ports:
@@ -72,6 +75,9 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
     volumes:
       - ./backend:/app
       - media_data:/app/media
@@ -96,6 +102,9 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
     volumes:
       - ./backend:/app
     depends_on:

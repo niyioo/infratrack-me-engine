@@ -183,6 +183,9 @@ export function CitizenReportsPage() {
 
   return shell(
     <>
+      {/* Above the tabs so it stays visible even when the action empties the current tab. */}
+      {feedback && <Alert variant={feedback.variant} message={feedback.message} />}
+
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-fit">
         {TABS.map((t) => (
@@ -192,7 +195,6 @@ export function CitizenReportsPage() {
             onClick={() => {
               setTab(t.key);
               setSelectedId(null);
-              setFeedback(null);
             }}
             className={clsx(
               "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition sm:flex-none",
@@ -272,8 +274,6 @@ export function CitizenReportsPage() {
 
           {/* ── Detail ────────────────────────────────────────── */}
           <div className="space-y-4">
-            {feedback && <Alert variant={feedback.variant} message={feedback.message} />}
-
             {selected ? (
               <>
                 <Card className="overflow-hidden p-0">
