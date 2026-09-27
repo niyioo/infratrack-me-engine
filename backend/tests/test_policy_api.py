@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -49,8 +50,8 @@ def create_project(*, agency, created_by, code, title, status="ACTIVE", lng=5.22
         geo_fence_radius_meters=50,
         budget_amount=1000,
         current_status=status,
-        start_date="2026-01-01",
-        expected_end_date="2026-12-31",
+        start_date=date.today() - timedelta(days=90),
+        expected_end_date=date.today() + timedelta(days=180),
         created_by=created_by,
     )
 
@@ -328,7 +329,7 @@ def test_evidence_submission_logs_integrity_flags_for_suspicious_capture_metadat
         required_evidence_count=1,
         qa_required=True,
         requires_field_validation=False,
-        due_date="2026-06-01",
+        due_date=date.today() + timedelta(days=60),
     )
     ProjectAssignment.objects.create(project=project, user=user, assignment_role="FIELD_OFFICER")
     client.force_authenticate(user=user)
@@ -412,8 +413,8 @@ def test_project_creation_rejects_invalid_dates(db):
             "budget_amount": "1000.00",
             "currency": "NGN",
             "funding_cycle": "2026",
-            "start_date": "2026-12-31",
-            "expected_end_date": "2026-01-01",
+            "start_date": (date.today() + timedelta(days=180)).isoformat(),
+            "expected_end_date": (date.today() - timedelta(days=90)).isoformat(),
             "actual_end_date": None,
             "current_status": "NOT_STARTED",
             "risk_status": "LOW",
@@ -440,7 +441,7 @@ def test_evidence_submission_rolls_back_if_file_processing_fails(db):
         required_evidence_count=1,
         qa_required=True,
         requires_field_validation=False,
-        due_date="2026-06-01",
+        due_date=date.today() + timedelta(days=60),
     )
     ProjectAssignment.objects.create(project=project, user=user, assignment_role="FIELD_OFFICER")
     client.force_authenticate(user=user)

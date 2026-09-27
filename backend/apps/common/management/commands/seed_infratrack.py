@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 from apps.accounts.models import Role, User, UserRole
 from apps.organizations.models import Agency, Contractor
 from apps.projects.models import Project, ProjectAssignment
@@ -11,6 +14,7 @@ class Command(BaseCommand):
     help = "Seed InfraTrack development data"
 
     def handle(self, *args, **options):
+        today = timezone.localdate()
         role_codes = [
             ("SUPER_ADMIN", "Super Admin"),
             ("PROGRAM_DIRECTOR", "Program Director"),
@@ -86,8 +90,9 @@ class Command(BaseCommand):
                 "site_location": Point(5.2200, 7.2500, srid=4326),
                 "geo_fence_radius_meters": 50,
                 "budget_amount": 120000000.00,
-                "start_date": "2026-03-01",
-                "expected_end_date": "2026-09-30",
+                # Relative to the seeding date so demo data is always an ongoing project.
+                "start_date": today - timedelta(days=30),
+                "expected_end_date": today + timedelta(days=270),
                 "created_by": admin_user,
             }
         )
@@ -114,7 +119,7 @@ class Command(BaseCommand):
                 "qa_required": True,
                 "requires_field_validation": True,
                 "required_checklist_score": 70,
-                "due_date": "2026-04-15",
+                "due_date": today + timedelta(days=45),
                 "linked_tranche": tranche1,
             }
         )

@@ -13,6 +13,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks";
+import { version as appVersion } from "../../../package.json";
 import { InfraTrackLogo } from "@/components/brand/InfraTrackLogo";
 import {
   ANALYTICS_ACCESS_CAPABILITIES,
@@ -158,7 +159,7 @@ export function Sidebar() {
       {/* Footer spacer */}
       <div className="border-t border-slate-100 px-4 py-3">
         <p className="text-[10px] text-slate-400">
-          InfraTrack M&E Engine · v1.0
+          InfraTrack M&E Engine · v{appVersion}
         </p>
       </div>
     </aside>

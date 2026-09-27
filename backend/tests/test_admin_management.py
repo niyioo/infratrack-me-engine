@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from rest_framework.test import APIClient
 from django.contrib.gis.geos import Point
 
@@ -100,8 +101,8 @@ def test_project_creation_requires_management_capability(db):
             "budget_amount": "1000000.00",
             "currency": "NGN",
             "funding_cycle": "2026",
-            "start_date": "2026-01-01",
-            "expected_end_date": "2026-06-01",
+            "start_date": (date.today() - timedelta(days=90)).isoformat(),
+            "expected_end_date": (date.today() + timedelta(days=180)).isoformat(),
             "current_status": "NOT_STARTED",
             "risk_status": "LOW",
             "requires_independent_validation": True,
@@ -140,8 +141,8 @@ def test_project_manager_can_create_project(db):
             "budget_amount": "1200000.00",
             "currency": "NGN",
             "funding_cycle": "2026",
-            "start_date": "2026-01-10",
-            "expected_end_date": "2026-07-10",
+            "start_date": (date.today() - timedelta(days=90)).isoformat(),
+            "expected_end_date": (date.today() + timedelta(days=180)).isoformat(),
             "current_status": "NOT_STARTED",
             "risk_status": "LOW",
             "requires_independent_validation": True,
@@ -177,8 +178,8 @@ def test_non_manager_cannot_update_project_even_when_assigned(db):
         budget_amount="1000000.00",
         currency="NGN",
         funding_cycle="2026",
-        start_date="2026-01-01",
-        expected_end_date="2026-06-01",
+        start_date=date.today() - timedelta(days=90),
+        expected_end_date=date.today() + timedelta(days=180),
         current_status="NOT_STARTED",
         risk_status="LOW",
         requires_independent_validation=True,
@@ -232,8 +233,8 @@ def test_non_manager_cannot_delete_project_even_when_assigned(db):
         budget_amount="1000000.00",
         currency="NGN",
         funding_cycle="2026",
-        start_date="2026-01-01",
-        expected_end_date="2026-06-01",
+        start_date=date.today() - timedelta(days=90),
+        expected_end_date=date.today() + timedelta(days=180),
         current_status="NOT_STARTED",
         risk_status="LOW",
         requires_independent_validation=True,

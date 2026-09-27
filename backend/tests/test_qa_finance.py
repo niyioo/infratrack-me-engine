@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 """
 Tests covering QA approval flow, tranche eligibility engine, and disbursement blocking.
 """
@@ -6,6 +7,7 @@ from decimal import Decimal
 
 from django.contrib.gis.geos import Point
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role, User, UserRole
@@ -53,8 +55,8 @@ def make_project(*, agency, created_by, code="PRJ-QF-01"):
         site_location=Point(5.22, 7.25, srid=4326),
         geo_fence_radius_meters=5000,
         budget_amount=Decimal("1000000.00"),
-        start_date="2026-01-01",
-        expected_end_date="2026-12-31",
+        start_date=date.today() - timedelta(days=90),
+        expected_end_date=date.today() + timedelta(days=180),
         created_by=created_by,
     )
 
@@ -68,7 +70,7 @@ def make_milestone(project, sequence_order, *, status=MilestoneStatus.SUBMITTED)
         required_evidence_count=1,
         qa_required=True,
         requires_field_validation=False,
-        due_date="2026-06-01",
+        due_date=date.today() + timedelta(days=60),
         current_status=status,
     )
 
@@ -92,7 +94,7 @@ def make_submission(project, milestone, user, *, status=SubmissionStatus.SUBMITT
         mime_type="image/jpeg",
         file_size_bytes=1,
         sha256_hash="abc123",
-        captured_at="2026-04-01T10:00:00Z",
+        captured_at=timezone.now(),
         latitude=7.25,
         longitude=5.22,
         is_primary=True,

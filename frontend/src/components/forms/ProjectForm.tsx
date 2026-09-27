@@ -13,30 +13,60 @@ export type ProjectFormValues = Omit<CreateProjectPayload, "agency" | "contracto
   location_input: string;
 };
 
-export const defaultProjectFormValues: ProjectFormValues = {
-  project_code: "",
-  title: "",
-  description: "",
-  agency: "",
-  contractor: "",
-  supervising_department: "Infrastructure Delivery Unit",
-  category: "BUILDING",
-  sector: "HEALTH",
-  state: "Ondo",
-  lga: "Akure North",
-  ward: "",
-  site_address: "",
-  location_input: "7.25, 5.22",
-  geo_fence_radius_meters: 50,
-  budget_amount: 10000000,
-  currency: "NGN",
-  funding_cycle: "2026-Q2",
-  start_date: "2026-03-01",
-  expected_end_date: "2026-09-30",
-  requires_independent_validation: true,
-  risk_status: "LOW",
-  current_status: "NOT_STARTED"
-};
+function toIsoDate(value: Date) {
+  const offset = value.getTimezoneOffset() * 60_000;
+  return new Date(value.getTime() - offset).toISOString().slice(0, 10);
+}
+
+/**
+ * Blank starting values for a new project. Nothing site-specific is pre-filled,
+ * so a project can't be created at a demo location or budget by accident; the
+ * only defaults are derived from today's date or mirror backend defaults.
+ */
+export function getDefaultProjectFormValues(): ProjectFormValues {
+  const today = new Date();
+  const oneYearOut = new Date(today);
+  oneYearOut.setFullYear(today.getFullYear() + 1);
+
+  return {
+    project_code: "",
+    title: "",
+    description: "",
+    agency: "",
+    contractor: "",
+    supervising_department: "",
+    category: "",
+    sector: "",
+    state: "",
+    lga: "",
+    ward: "",
+    site_address: "",
+    location_input: "",
+    geo_fence_radius_meters: 50, // backend model default
+    budget_amount: 0,
+    currency: "NGN",
+    funding_cycle: `${today.getFullYear()}-Q${Math.floor(today.getMonth() / 3) + 1}`,
+    start_date: toIsoDate(today),
+    expected_end_date: toIsoDate(oneYearOut),
+    requires_independent_validation: true,
+    risk_status: "LOW",
+    current_status: "NOT_STARTED"
+  };
+}
+
+// New projects may only start in these states (enforced by the API as well).
+const CREATE_STATUSES = [
+  { value: "NOT_STARTED", label: "Not Started" },
+  { value: "ACTIVE", label: "Active" },
+];
+const ALL_STATUSES = [
+  ...CREATE_STATUSES,
+  { value: "AWAITING_VERIFICATION", label: "Awaiting Verification" },
+  { value: "APPROVED_FOR_FUNDING", label: "Approved for Funding" },
+  { value: "DELAYED", label: "Delayed" },
+  { value: "FLAGGED", label: "Flagged" },
+  { value: "COMPLETED", label: "Completed" },
+];
 
 type Props = {
   agencies: Agency[];
@@ -78,18 +108,22 @@ export function getProjectFormValues(project: Project): ProjectFormValues {
 export function ProjectForm({
   agencies,
   contractors,
-  initialValues = defaultProjectFormValues,
+  initialValues,
   onSubmit,
   loading,
   submitLabel,
   submitError
 }: Props) {
-  const [form, setForm] = useState<ProjectFormValues>(initialValues);
+  const isCreate = !initialValues;
+  const [form, setForm] = useState<ProjectFormValues>(() => initialValues ?? getDefaultProjectFormValues());
+  const statusOptions = isCreate ? CREATE_STATUSES : ALL_STATUSES;
   const [locationError, setLocationError] = useState<string | null>(null);
   const parsedLocation = useMemo(() => parseProjectLocationInput(form.location_input), [form.location_input]);
 
   useEffect(() => {
-    setForm(initialValues);
+    if (initialValues) {
+      setForm(initialValues);
+    }
   }, [initialValues]);
 
   return (
@@ -215,13 +249,11 @@ export function ProjectForm({
               value={form.current_status}
               onChange={(event) => setForm((current) => ({ ...current, current_status: event.target.value }))}
             >
-              <option value="NOT_STARTED">Not Started</option>
-              <option value="ACTIVE">Active</option>
-              <option value="AWAITING_VERIFICATION">Awaiting Verification</option>
-              <option value="APPROVED_FOR_FUNDING">Approved for Funding</option>
-              <option value="DELAYED">Delayed</option>
-              <option value="FLAGGED">Flagged</option>
-              <option value="COMPLETED">Completed</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </div>
         </div>
@@ -318,8 +350,9 @@ export function ProjectForm({
             <label className="mb-2 block text-sm font-medium text-slate-700">Budget Amount</label>
             <Input
               type="number"
-              min="0"
-              value={form.budget_amount}
+              min="1"
+              value={form.budget_amount || ""}
+              placeholder="Approved budget"
               onChange={(event) => setForm((current) => ({ ...current, budget_amount: Number(event.target.value) || 0 }))}
               required
             />
@@ -338,7 +371,7 @@ export function ProjectForm({
             <Input
               value={form.funding_cycle}
               onChange={(event) => setForm((current) => ({ ...current, funding_cycle: event.target.value }))}
-              placeholder="2026-Q2"
+              placeholder="e.g. 2027-Q1"
             />
           </div>
           <div>

@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from django.contrib.gis.geos import Point
 from rest_framework.test import APIClient
 
@@ -20,7 +21,7 @@ def create_user(email, role_code):
     return user, agency
 
 
-def create_project(*, agency, created_by, code, title, start_date="2026-01-01", expected_end_date="2026-12-31"):
+def create_project(*, agency, created_by, code, title, start_date=date.today() - timedelta(days=90), expected_end_date=date.today() + timedelta(days=180)):
     contractor, _ = Contractor.objects.get_or_create(
         registration_number=f"RC-{code}",
         defaults={"name": f"Contractor {code}"},
@@ -45,7 +46,7 @@ def create_project(*, agency, created_by, code, title, start_date="2026-01-01", 
     )
 
 
-def create_milestone(project, sequence_order, *, status="PENDING", due_date="2026-06-01"):
+def create_milestone(project, sequence_order, *, status="PENDING", due_date=date.today() + timedelta(days=60)):
     return ProjectMilestone.objects.create(
         project=project,
         name=f"Milestone {sequence_order}",
@@ -114,8 +115,8 @@ def test_dashboard_summary_exposes_reporting_compliance_queue(db):
         created_by=user,
         code="PRJ-COMP",
         title="Compliance Project",
-        start_date="2025-01-01",
-        expected_end_date="2026-12-31",
+        start_date=date.today() - timedelta(days=365),
+        expected_end_date=date.today() + timedelta(days=180),
     )
     project.reporting_frequency = "MONTHLY"
     project.save(update_fields=["reporting_frequency"])
@@ -136,8 +137,8 @@ def test_project_detail_exposes_reporting_compliance_fields(db):
         created_by=user,
         code="PRJ-RPT",
         title="Reporting Detail Project",
-        start_date="2025-01-01",
-        expected_end_date="2026-12-31",
+        start_date=date.today() - timedelta(days=365),
+        expected_end_date=date.today() + timedelta(days=180),
     )
     project.reporting_frequency = "MONTHLY"
     project.save(update_fields=["reporting_frequency"])

@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 """
 Tests for anonymous citizen reports: public API, anti-abuse, volume-based risk
 escalation, and staff triage.
@@ -57,8 +58,8 @@ def make_project(agency, created_by, code, status="ACTIVE"):
         site_location=Point(5.22, 7.25, srid=4326),
         geo_fence_radius_meters=100,
         budget_amount=Decimal("1000000.00"),
-        start_date="2026-01-01",
-        expected_end_date="2026-12-31",
+        start_date=date.today() - timedelta(days=90),
+        expected_end_date=date.today() + timedelta(days=180),
         current_status=status,
         risk_status="LOW",
         created_by=created_by,

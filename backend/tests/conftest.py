@@ -13,7 +13,12 @@ import pytest
 from django.core.management import call_command
 
 
-OSGEO4W_ROOT = Path(r"C:\Users\Sammy\AppData\Local\Programs\OSGeo4W")
+# Windows host runs only: locate OSGeo4W without hard-coding a user's profile path.
+# OSGEO4W_ROOT can override; the default is the per-user installer location.
+OSGEO4W_ROOT = Path(
+    os.environ.get("OSGEO4W_ROOT")
+    or Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "OSGeo4W"
+)
 OSGEO4W_BIN = OSGEO4W_ROOT / "bin"
 GDAL_DATA = OSGEO4W_ROOT / "apps" / "gdal" / "share" / "gdal"
 PROJ_LIB = OSGEO4W_ROOT / "share" / "proj"
