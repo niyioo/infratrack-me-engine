@@ -13,8 +13,13 @@ export function useTranches(
 }
 
 export function useEvaluateTranche() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (trancheId: number) => evaluateTranche(trancheId)
+    mutationFn: (trancheId: number) => evaluateTranche(trancheId),
+    // Evaluation writes the tranche's status (LOCKED/ELIGIBLE) server-side.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tranches"] });
+    }
   });
 }
 

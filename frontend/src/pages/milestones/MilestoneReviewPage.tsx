@@ -20,9 +20,20 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { QueryStateCard } from "@/components/ui/QueryStateCard";
 import { useEvidenceSubmissions } from "@/features/evidence/hooks";
+import type { EvidenceSubmission } from "@/features/evidence/types";
 import { useMilestones } from "@/features/milestones/hooks";
 import { useCreateQaReview, useQaReviews } from "@/features/qa/hooks";
 import { formatDate } from "@/lib/utils/format";
+
+// GPS fix of the primary photo (where the officer actually stood), not the site pin.
+function formatCaptureLocation(submission: EvidenceSubmission) {
+  const files = submission.files ?? [];
+  const file = files.find((f) => f.is_primary) ?? files[0];
+  if (file?.latitude == null || file?.longitude == null) return "Not recorded";
+  const lat = `${Math.abs(file.latitude).toFixed(5)}°${file.latitude >= 0 ? "N" : "S"}`;
+  const lng = `${Math.abs(file.longitude).toFixed(5)}°${file.longitude >= 0 ? "E" : "W"}`;
+  return `${lat}, ${lng}`;
+}
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type Decision = "APPROVED" | "REWORK_REQUIRED" | "REJECTED" | "FLAGGED";
@@ -332,7 +343,7 @@ export function MilestoneReviewPage() {
                       {
                         label: "Project",
                         icon: Shield,
-                        value: selectedSubmission.project_title,
+                        value: `${selectedSubmission.project_title} (${selectedSubmission.project_code})`,
                       },
                       {
                         label: "Milestone",
@@ -340,9 +351,9 @@ export function MilestoneReviewPage() {
                         value: selectedSubmission.milestone_name,
                       },
                       {
-                        label: "Location",
+                        label: "Captured at",
                         icon: MapPin,
-                        value: `${selectedSubmission.project_code}`,
+                        value: formatCaptureLocation(selectedSubmission),
                       },
                       {
                         label: "Submitted by",

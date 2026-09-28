@@ -12,6 +12,14 @@ export type EvidenceSubmission = {
   submitted_by_name: string;
   requires_exception_review: boolean;
   file_count: number;
+  files?: EvidenceFileSummary[];
+};
+
+export type EvidenceFileSummary = {
+  id: number;
+  latitude: number | null;
+  longitude: number | null;
+  is_primary: boolean;
 };
 
 export type GeoFenceExceptionRequest = {
