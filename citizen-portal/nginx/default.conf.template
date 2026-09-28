@@ -1,0 +1,34 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    # Reporters are anonymous: never write client IPs to disk. Access logs are off,
+    # and the error log is limited to crit so routine "client: <ip>" lines aren't kept.
+    access_log off;
+    error_log /dev/stderr crit;
+
+    # Note: add_header inside a location replaces server-level headers, so each
+    # location below declares its full set.
+
+    # Hashed build assets can be cached forever.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # Client-side routes (/report/:id, /track/:code) all serve the SPA shell.
+    location / {
+        add_header Cache-Control "no-cache" always;
+        # No third-party origins at all: nothing may leak a reporter's IP elsewhere.
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ${PUBLIC_API_ORIGIN}; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Permissions-Policy "geolocation=(self), camera=(self), microphone=(), interest-cohort=()" always;
+        try_files $uri $uri/ /index.html;
+    }
+}

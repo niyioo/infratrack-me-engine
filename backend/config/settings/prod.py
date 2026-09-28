@@ -1,3 +1,5 @@
+import os
+
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *
@@ -33,6 +35,15 @@ if not CORS_ALLOWED_ORIGINS:
 
 if not CSRF_TRUSTED_ORIGINS:
     raise ImproperlyConfigured("CSRF_TRUSTED_ORIGINS must be set in production.")
+
+# Production sits behind a reverse proxy (see SECURE_PROXY_SSL_HEADER below). The proxy
+# count decides which X-Forwarded-For hop is the real client for rate limits and
+# citizen-report dedup, so it must be stated explicitly: a wrong value either lumps
+# every client under the proxy's IP or lets clients spoof their address.
+if "NUM_PROXIES" not in os.environ:
+    raise ImproperlyConfigured(
+        "NUM_PROXIES must be set in production (usually 1 behind a single nginx/load balancer)."
+    )
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=True)
