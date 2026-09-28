@@ -257,6 +257,17 @@ class CitizenReportService:
             )
 
         report.save()
+        if status == CitizenReportStatus.ESCALATED:
+            # An open fraud flag should flip the project to FLAGGED, exactly as a
+            # QA-raised flag does; otherwise dashboards show an open flag on an
+            # "unflagged" project.
+            from apps.projects.services import ProjectService
+
+            ProjectService.sync_operational_status(
+                report.project,
+                user=user,
+                reason=f"Citizen report {report.tracking_code} escalated to a fraud flag.",
+            )
         AuditService.log_event(
             event_type="CITIZEN_REPORT_TRIAGED",
             actor=user,

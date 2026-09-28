@@ -186,6 +186,8 @@ def test_escalation_creates_fraud_flag_that_blocks_tranche(project):
     assert response.data["fraud_flag"] is not None
     result = TrancheEligibilityEngine.evaluate(tranche)
     assert "Project has unresolved fraud flags." in result["rules_failed"]
+    project.refresh_from_db()
+    assert project.current_status == "FLAGGED"
 
 
 def test_field_officer_and_contractor_cannot_see_citizen_reports(project):
