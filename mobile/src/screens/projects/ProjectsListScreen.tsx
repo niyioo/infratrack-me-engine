@@ -128,12 +128,16 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
           </Text>
         </View>
 
-        <View style={[styles.healthBubble, { borderColor: healthColor(project.health_score) }]}>
-          <Text style={[styles.healthValue, { color: healthColor(project.health_score) }]}>
-            {project.health_score != null ? project.health_score : "—"}
-          </Text>
-          <Text style={styles.healthLabel}>Health</Text>
-        </View>
+        {/* The list endpoint doesn't compute health (it's per-project work); the
+            detail screen shows it. Only render the bubble when a score is present. */}
+        {project.health_score != null ? (
+          <View style={[styles.healthBubble, { borderColor: healthColor(project.health_score) }]}>
+            <Text style={[styles.healthValue, { color: healthColor(project.health_score) }]}>
+              {project.health_score}
+            </Text>
+            <Text style={styles.healthLabel}>Health</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Location */}

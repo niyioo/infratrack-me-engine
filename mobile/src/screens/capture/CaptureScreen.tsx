@@ -45,8 +45,15 @@ export function CaptureScreen() {
   }, [location, siteLat, siteLng, radiusMeters]);
 
   const hasGeofenceContext = siteLat !== null && siteLng !== null;
-  const canCapture = !hasGeofenceContext || !geofence || geofence.withinGeofence;
+  // With a site to check against, wait for a GPS fix before allowing capture: a
+  // photo taken before then has no location and would be silently discarded.
+  const canCapture = hasGeofenceContext ? !!geofence?.withinGeofence : true;
   const gpsReady = !!location;
+  const pill = canCapture
+    ? { label: "Ready", icon: "checkmark-circle" as const, color: colors.success, style: styles.statusPillReady }
+    : hasGeofenceContext && !geofence
+      ? { label: "Waiting for GPS", icon: "time-outline" as const, color: colors.warning, style: styles.statusPillWaiting }
+      : { label: "Blocked", icon: "ban-outline" as const, color: colors.danger, style: styles.statusPillBlocked };
 
   return (
     <AppScreen scroll contentContainerStyle={styles.content} style={styles.screen}>
@@ -134,25 +141,9 @@ export function CaptureScreen() {
                   Geo-stamped field evidence capture
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.statusPill,
-                  canCapture ? styles.statusPillReady : styles.statusPillBlocked,
-                ]}
-              >
-                <Ionicons
-                  name={canCapture ? "checkmark-circle" : "ban-outline"}
-                  size={12}
-                  color={canCapture ? colors.success : colors.danger}
-                />
-                <Text
-                  style={[
-                    styles.statusPillText,
-                    { color: canCapture ? colors.success : colors.danger },
-                  ]}
-                >
-                  {canCapture ? "Ready" : "Blocked"}
-                </Text>
+              <View style={[styles.statusPill, pill.style]}>
+                <Ionicons name={pill.icon} size={12} color={pill.color} />
+                <Text style={[styles.statusPillText, { color: pill.color }]}>{pill.label}</Text>
               </View>
             </View>
 
@@ -347,6 +338,10 @@ const styles = StyleSheet.create({
   statusPillBlocked: {
     backgroundColor: "#FEF2F2",
     borderColor: "#FECACA",
+  },
+  statusPillWaiting: {
+    backgroundColor: colors.warningSoft,
+    borderColor: "#FDE68A",
   },
   statusPillText: {
     fontSize: 12,

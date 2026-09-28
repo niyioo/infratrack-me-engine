@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppAlert } from "@/components/ui/AppAlert";
 import { AppBadge } from "@/components/ui/AppBadge";
@@ -16,6 +18,7 @@ import axios from "axios";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -64,13 +67,14 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
     >
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top + spacing.xl }]}>
           <InfraTrackBrand size="lg" stacked light />
           <AppBadge label="Secure Access" tone="info" />
           <Text style={styles.heroSubtitle}>

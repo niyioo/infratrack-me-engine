@@ -5,6 +5,8 @@ Tests covering QA approval flow, tranche eligibility engine, and disbursement bl
 
 from decimal import Decimal
 
+import pytest
+
 from django.contrib.gis.geos import Point
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
@@ -13,6 +15,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import Role, User, UserRole
 from apps.common.constants import MilestoneStatus, SubmissionStatus, TrancheStatus
 from apps.evidence.models import EvidenceFile, EvidenceSubmission
+from apps.evidence.services import EvidenceSubmissionService
 from apps.finance.models import Disbursement, FundingTranche
 from apps.finance.rules import TrancheEligibilityEngine
 from apps.milestones.models import MilestoneChecklistItem, ProjectMilestone
@@ -667,3 +670,44 @@ def test_fraud_flag_resolution_requires_permission_and_note(db):
     assert no_note.status_code == 400
     flag.refresh_from_db()
     assert flag.status == "OPEN"
+
+
+# ---------------------------------------------------------------------------
+# Milestone progression on evidence submission
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "start_status",
+    [MilestoneStatus.PENDING, MilestoneStatus.OPEN_FOR_SUBMISSION, MilestoneStatus.REWORK_REQUIRED],
+)
+def test_accepted_evidence_puts_milestone_in_front_of_qa(db, start_status):
+    field_user, agency = make_user(f"field-adv-{start_status.lower()}@example.com", "FIELD_OFFICER")
+    project = make_project(agency=agency, created_by=field_user, code=f"PRJ-ADV-{start_status[:4]}")
+    milestone = make_milestone(project, 1, status=start_status)
+    submission = make_submission(project, milestone, field_user, status=SubmissionStatus.DRAFT)
+
+    EvidenceSubmissionService.submit(submission, 7.25, 5.22, {})
+
+    milestone.refresh_from_db()
+    assert milestone.current_status == MilestoneStatus.SUBMITTED
+
+
+def test_milestone_api_reports_counted_evidence(db):
+    field_user, agency = make_user("field-count@example.com", "FIELD_OFFICER")
+    project = make_project(agency=agency, created_by=field_user, code="PRJ-CNT-01")
+    ProjectAssignment.objects.create(project=project, user=field_user, assignment_role="FIELD_OFFICER")
+    milestone = make_milestone(project, 1)
+    make_submission(project, milestone, field_user)
+    make_submission(project, milestone, field_user, status=SubmissionStatus.APPROVED)
+    # Blocked (off-site) and rework submissions don't satisfy the requirement.
+    make_submission(project, milestone, field_user, status=SubmissionStatus.BLOCKED)
+    make_submission(project, milestone, field_user, status=SubmissionStatus.REWORK_REQUIRED)
+
+    client = APIClient()
+    client.force_authenticate(user=field_user)
+    response = client.get("/api/milestones/", {"project": project.id})
+
+    assert response.status_code == 200
+    rows = response.data["results"] if isinstance(response.data, dict) else response.data
+    assert [row["submitted_evidence_count"] for row in rows] == [2]

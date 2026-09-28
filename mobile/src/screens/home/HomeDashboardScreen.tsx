@@ -71,7 +71,10 @@ export function HomeDashboardScreen() {
   const queue = useOfflineQueueSummary();
 
   const primaryRole = roles[0];
-  const activeProjects = projects.filter((p) => p.current_status !== "COMPLETED");
+  // Work actually under way: not-started, completed and paused projects don't count.
+  const activeProjects = projects.filter((p) =>
+    ["ACTIVE", "DELAYED", "FLAGGED"].includes(p.current_status),
+  );
   const delayedProjects = projects.filter((p) => p.current_status === "DELAYED");
   const flaggedProjects = projects.filter((p) => p.current_status === "FLAGGED");
   const highRiskProjects = projects.filter((p) =>

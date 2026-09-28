@@ -1,5 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import type { User } from "./types";
+import { queryClient } from "@/lib/queryClient";
 
 const ACCESS_TOKEN_KEY = "infratrack_access_token";
 const REFRESH_TOKEN_KEY = "infratrack_refresh_token";
@@ -22,6 +23,9 @@ export async function clearTokens() {
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   await SecureStore.deleteItemAsync(USER_KEY);
+  // Drop cached API data too, or the next person to sign in on this device briefly
+  // sees the previous account's projects before they refetch.
+  queryClient.clear();
 }
 
 export async function setStoredUser(user: User | null) {

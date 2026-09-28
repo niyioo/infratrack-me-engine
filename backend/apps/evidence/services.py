@@ -122,8 +122,15 @@ class EvidenceSubmissionService:
             "geo_validation_status", "submission_status", "submitted_at", "updated_at"
         ])
 
+        # Accepted evidence puts the milestone in front of QA. PENDING is included so
+        # evidence captured before a manager formally opens the milestone isn't
+        # stranded, and REWORK_REQUIRED so a resubmission goes back for review.
         milestone = submission.milestone
-        if milestone.current_status == MilestoneStatus.OPEN_FOR_SUBMISSION:
+        if milestone.current_status in (
+            MilestoneStatus.PENDING,
+            MilestoneStatus.OPEN_FOR_SUBMISSION,
+            MilestoneStatus.REWORK_REQUIRED,
+        ):
             milestone.current_status = MilestoneStatus.SUBMITTED
             milestone.save(update_fields=["current_status", "updated_at"])
 

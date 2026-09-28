@@ -71,6 +71,7 @@ export function CaptureReviewRouteScreen() {
       await submitMutation.mutateAsync(formData);
       clearCaptureDraft();
       queryClient.invalidateQueries({ queryKey: ["mobile-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["mobile-project"] });
       queryClient.invalidateQueries({ queryKey: ["mobile-offline-queue"] });
       queryClient.invalidateQueries({ queryKey: ["mobile-milestones"] });
       Alert.alert("Evidence submitted", "Your evidence has been uploaded successfully.");

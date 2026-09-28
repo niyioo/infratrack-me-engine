@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "@/lib/theme/tokens";
 
@@ -136,7 +137,7 @@ export function CaptureReviewScreen({
     networkLabel.toLowerCase().includes("connected");
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top", "left", "right"]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -295,7 +296,7 @@ export function CaptureReviewScreen({
             : "Offline — save to queue and submit when connectivity is restored."}
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

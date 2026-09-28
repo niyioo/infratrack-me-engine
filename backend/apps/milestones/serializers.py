@@ -15,6 +15,8 @@ class MilestoneChecklistItemSerializer(serializers.ModelSerializer):
 
 class ProjectMilestoneSerializer(serializers.ModelSerializer):
     checklist_items = MilestoneChecklistItemSerializer(many=True, read_only=True)
+    # Annotated by ProjectMilestoneViewSet; omitted where the annotation is absent.
+    submitted_evidence_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = ProjectMilestone
@@ -41,6 +43,7 @@ class ProjectMilestoneSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "checklist_items",
+            "submitted_evidence_count",
         ]
         read_only_fields = ["completed_date"]
 

@@ -1,3 +1,5 @@
+from django.db.models import Count, IntegerField, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 from apps.milestones.models import (
@@ -13,6 +15,8 @@ from apps.milestones.serializers import (
     MilestoneChecklistItemSerializer,
 )
 from apps.audits.services import AuditService
+from apps.common.constants import SubmissionStatus
+from apps.evidence.models import EvidenceSubmission
 from apps.common.permissions import (
     HIGH_PRIVILEGE_ROLE_CODES,
     HasActionCapability,
@@ -40,6 +44,32 @@ class MilestoneTemplateViewSet(viewsets.ModelViewSet):
     }
 
 
+# Submissions that count toward a milestone's evidence requirement: accepted onto
+# the site and not sent back or thrown out by QA.
+COUNTED_SUBMISSION_STATUSES = [
+    SubmissionStatus.SUBMITTED,
+    SubmissionStatus.UNDER_REVIEW,
+    SubmissionStatus.APPROVED,
+]
+
+
+def _with_evidence_counts(queryset):
+    # A subquery rather than a join-based Count: the assignment filter below joins
+    # through projects and would multiply the count.
+    counted = (
+        EvidenceSubmission.objects.filter(
+            milestone=OuterRef("pk"), submission_status__in=COUNTED_SUBMISSION_STATUSES
+        )
+        .order_by()
+        .values("milestone")
+        .annotate(n=Count("pk"))
+        .values("n")
+    )
+    return queryset.annotate(
+        submitted_evidence_count=Coalesce(Subquery(counted, output_field=IntegerField()), 0)
+    )
+
+
 class ProjectMilestoneViewSet(viewsets.ModelViewSet):
     queryset = ProjectMilestone.objects.prefetch_related("checklist_items", "dependencies").all()
     serializer_class = ProjectMilestoneSerializer
@@ -48,14 +78,15 @@ class ProjectMilestoneViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        queryset = _with_evidence_counts(self.queryset)
         if user.is_superuser:
-            return self.queryset
+            return queryset
 
         user_roles = get_user_role_codes(user)
         if user_roles.intersection(HIGH_PRIVILEGE_ROLE_CODES):
-            return self.queryset
+            return queryset
 
-        return self.queryset.filter(project__assignments__user=user, project__assignments__is_active=True).distinct()
+        return queryset.filter(project__assignments__user=user, project__assignments__is_active=True).distinct()
 
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]

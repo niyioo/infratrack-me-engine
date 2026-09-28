@@ -45,7 +45,7 @@ export async function capturePhotoLive(): Promise<CameraCaptureResult> {
 
   try {
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: false,
       quality: 0.8,
       exif: true,
