@@ -27,6 +27,7 @@ import { ProjectTimeline } from "@/components/project/ProjectTimeline";
 import { MilestonesTable } from "@/components/tables/MilestonesTable";
 import { EvidenceTable } from "@/components/tables/EvidenceTable";
 import { FraudFlagsTable } from "@/components/tables/FraudFlagsTable";
+import { CitizenReportsPanel } from "@/components/project/CitizenReportsPanel";
 import { NigeriaProjectsMap } from "@/components/maps/NigeriaProjectsMap";
 import { useProject, useProjectAssignments } from "@/features/projects/hooks";
 import { useMilestones } from "@/features/milestones/hooks";
@@ -598,6 +599,12 @@ export function ProjectDetailPage() {
               canReview={canReviewGeoFenceExceptions}
               loading={geoFenceExceptionsQuery.isLoading}
             />
+
+            {project.citizen_reports ? (
+              <div className="xl:col-span-2">
+                <CitizenReportsPanel summary={project.citizen_reports} />
+              </div>
+            ) : null}
 
             <div className="xl:col-span-2">
               <FraudFlagsTable items={projectFraudFlags} canResolve={canResolveFraudFlags} />

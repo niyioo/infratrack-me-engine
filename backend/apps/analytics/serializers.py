@@ -51,6 +51,12 @@ class DashboardAlertSummarySerializer(serializers.Serializer):
     geofence_exceptions_pending = serializers.IntegerField()
 
 
+class CitizenReportSummarySerializer(serializers.Serializer):
+    open = serializers.IntegerField()
+    escalated = serializers.IntegerField()
+    new_last_7_days = serializers.IntegerField()
+
+
 class DashboardProjectSummarySerializer(serializers.Serializer):
     id = serializers.IntegerField()
     project_code = serializers.CharField()
@@ -101,3 +107,5 @@ class DashboardSummarySerializer(serializers.Serializer):
     latest_snapshots = ProjectMetricSnapshotSerializer(many=True)
     summary_source = serializers.CharField()
     summary_snapshot_date = serializers.DateField(allow_null=True)
+    # None for users who can't triage citizen reports.
+    citizen_reports = CitizenReportSummarySerializer(allow_null=True, required=False, default=None)

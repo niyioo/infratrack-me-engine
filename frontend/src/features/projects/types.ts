@@ -50,7 +50,27 @@ export type Project = {
   reporting_due_date?: string | null;
   last_reported_at?: string | null;
   reporting_days_overdue?: number;
+  /** Null for users who can't triage citizen reports. */
+  citizen_reports?: ProjectCitizenReportSummary | null;
   created_at: string;
+};
+
+export type ProjectCitizenReportSummary = {
+  open: number;
+  escalated: number;
+  new_last_7_days: number;
+  total: number;
+  distinct_concern_reporters: number;
+  window_days: number;
+  high_threshold: number;
+  critical_threshold: number;
+  recent_open: {
+    id: number;
+    tracking_code: string;
+    category_label: string;
+    status: string;
+    created_at: string;
+  }[];
 };
 
 export type CreateProjectPayload = {

@@ -54,4 +54,6 @@ export type DashboardSummary = {
   latest_snapshots: ProjectMetricSnapshot[];
   summary_source: string;
   summary_snapshot_date: string | null;
+  /** Null for users who can't triage citizen reports. */
+  citizen_reports?: { open: number; escalated: number; new_last_7_days: number } | null;
 };

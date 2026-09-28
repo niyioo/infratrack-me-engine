@@ -9,6 +9,7 @@ import {
   Clock,
   Flag,
   MapPin,
+  Megaphone,
   ShieldAlert,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -269,7 +270,12 @@ export function DashboardPage() {
           {/* ── Operational Signals ─────────────────────────────────── */}
           <section className="space-y-3">
             <SectionLabel>Attention Required</SectionLabel>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div
+              className={clsx(
+                "grid grid-cols-1 gap-4",
+                summary.citizen_reports ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3",
+              )}
+            >
               <SignalCard
                 count={summary.alert_summary.delayed_milestones}
                 label="Delayed Milestones"
@@ -291,6 +297,24 @@ export function DashboardPage() {
                 icon={MapPin}
                 variant="info"
               />
+              {summary.citizen_reports ? (
+                <Link
+                  to="/citizen-reports"
+                  className="rounded-xl transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  <SignalCard
+                    count={summary.citizen_reports.open}
+                    label="Citizen Reports"
+                    description={
+                      summary.citizen_reports.new_last_7_days > 0
+                        ? `${summary.citizen_reports.new_last_7_days} new this week · ${summary.citizen_reports.escalated} escalated. Open triage queue →`
+                        : `${summary.citizen_reports.escalated} escalated. Open triage queue →`
+                    }
+                    icon={Megaphone}
+                    variant="warning"
+                  />
+                </Link>
+              ) : null}
             </div>
           </section>
 

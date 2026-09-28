@@ -210,3 +210,33 @@ def test_closed_report_cannot_be_retriaged(project):
     reopen = client.post(f"/api/citizen-reports/{report_id}/triage/", {"status": "UNDER_REVIEW"}, format="json")
 
     assert reopen.status_code == 400
+
+
+def test_dashboard_and_project_detail_expose_citizen_signals_to_triage_roles_only(project):
+    for i in range(2):
+        post_report(project, ip=f"198.51.100.{i + 40}")
+    post_report(project, ip="198.51.100.60", category="PROGRESS_UPDATE")
+
+    qa_user, _ = make_user("qa-signals@example.com", "QA_OFFICER")
+    ProjectAssignment.objects.create(project=project, user=qa_user, assignment_role="QA_OFFICER")
+    qa = APIClient()
+    qa.force_authenticate(user=qa_user)
+
+    summary = qa.get("/api/project-metric-snapshots/dashboard-summary/").data["citizen_reports"]
+    assert summary == {"open": 3, "escalated": 0, "new_last_7_days": 3}
+
+    detail = qa.get(f"/api/projects/{project.id}/").data["citizen_reports"]
+    assert detail["total"] == 3
+    # Positive updates don't count towards escalation.
+    assert detail["distinct_concern_reporters"] == 2
+    assert detail["high_threshold"] == 3
+    assert len(detail["recent_open"]) == 3
+    assert "reporter_fingerprint" not in detail["recent_open"][0]
+
+    for role in ("CONTRACTOR", "FIELD_OFFICER"):
+        user, _ = make_user(f"{role.lower()}-signals@example.com", role)
+        ProjectAssignment.objects.create(project=project, user=user, assignment_role=role)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        assert client.get("/api/project-metric-snapshots/dashboard-summary/").data["citizen_reports"] is None
+        assert client.get(f"/api/projects/{project.id}/").data["citizen_reports"] is None

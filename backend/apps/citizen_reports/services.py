@@ -26,6 +26,11 @@ from apps.qa.models import FraudFlag
 TRACKING_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I confusion
 RISK_RANK = {RiskStatus.LOW: 0, RiskStatus.MEDIUM: 1, RiskStatus.HIGH: 2, RiskStatus.CRITICAL: 3}
 TERMINAL_STATUSES = {CitizenReportStatus.RESOLVED, CitizenReportStatus.DISMISSED}
+OPEN_STATUSES = [
+    CitizenReportStatus.NEW,
+    CitizenReportStatus.UNDER_REVIEW,
+    CitizenReportStatus.FIELD_VISIT_REQUESTED,
+]
 MAX_PHOTO_DIMENSION = 2048
 
 
@@ -163,6 +168,51 @@ class CitizenReportService:
             ),
         )
         return target
+
+    @staticmethod
+    def can_view(user):
+        # Same gate as the triage queue: contractors and field staff never see
+        # complaint signals, since they may be the subject of them.
+        from apps.common.permissions import get_user_capabilities
+
+        return "citizen_reports.triage" in get_user_capabilities(user)
+
+    @staticmethod
+    def summary_for_projects(project_ids):
+        reports = CitizenReport.objects.filter(project_id__in=project_ids)
+        return {
+            "open": reports.filter(status__in=OPEN_STATUSES).count(),
+            "escalated": reports.filter(status=CitizenReportStatus.ESCALATED).count(),
+            "new_last_7_days": reports.filter(created_at__gte=timezone.now() - timedelta(days=7)).count(),
+        }
+
+    @staticmethod
+    def summary_for_project(project):
+        summary = CitizenReportService.summary_for_projects([project.id])
+        recent = (
+            CitizenReport.objects.filter(project=project, status__in=OPEN_STATUSES)
+            .order_by("-created_at")[:5]
+        )
+        summary.update(
+            {
+                "total": CitizenReport.objects.filter(project=project).count(),
+                "distinct_concern_reporters": CitizenReportService.distinct_concern_reporters(project),
+                "window_days": _setting("CITIZEN_REPORT_WINDOW_DAYS", 30),
+                "high_threshold": _setting("CITIZEN_REPORT_HIGH_THRESHOLD", 3),
+                "critical_threshold": _setting("CITIZEN_REPORT_CRITICAL_THRESHOLD", 6),
+                "recent_open": [
+                    {
+                        "id": report.id,
+                        "tracking_code": report.tracking_code,
+                        "category_label": report.get_category_display(),
+                        "status": report.status,
+                        "created_at": report.created_at,
+                    }
+                    for report in recent
+                ],
+            }
+        )
+        return summary
 
     @staticmethod
     def triage_recipients(project):

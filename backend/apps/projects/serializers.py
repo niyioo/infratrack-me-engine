@@ -90,6 +90,7 @@ class ProjectDetailSerializer(ProjectSerializer):
     reporting_due_date = serializers.SerializerMethodField()
     last_reported_at = serializers.SerializerMethodField()
     reporting_days_overdue = serializers.SerializerMethodField()
+    citizen_reports = serializers.SerializerMethodField()
 
     class Meta(ProjectSerializer.Meta):
         fields = ProjectSerializer.Meta.fields + [
@@ -111,7 +112,17 @@ class ProjectDetailSerializer(ProjectSerializer):
             "reporting_due_date",
             "last_reported_at",
             "reporting_days_overdue",
+            "citizen_reports",
         ]
+
+    def get_citizen_reports(self, obj):
+        # Hidden (None) from contractors/field staff, who may be the subject of reports.
+        from apps.citizen_reports.services import CitizenReportService
+
+        request = self.context.get("request")
+        if request is None or not CitizenReportService.can_view(request.user):
+            return None
+        return CitizenReportService.summary_for_project(obj)
 
     def _snapshot_values(self, obj):
         snapshot_values = getattr(obj, "_operational_snapshot_values", None)

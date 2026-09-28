@@ -17,6 +17,7 @@ from apps.analytics.serializers import (
 )
 from apps.analytics.services import AnalyticsService, DashboardSummaryService
 from apps.analytics.tasks import generate_project_snapshot_task
+from apps.citizen_reports.services import CitizenReportService
 from apps.common.constants import MilestoneStatus
 from apps.evidence.models import GeoFenceExceptionRequest
 from apps.projects.models import Project
@@ -141,6 +142,11 @@ class ProjectMetricSnapshotViewSet(OptionalPaginationMixin, viewsets.ReadOnlyMod
             alert_summary=alert_summary,
             summary_source=summary_source,
             summary_snapshot_date=summary_snapshot_date,
+        )
+        summary["citizen_reports"] = (
+            CitizenReportService.summary_for_projects(project_ids)
+            if CitizenReportService.can_view(request.user)
+            else None
         )
         return Response(DashboardSummarySerializer(summary).data)
 
