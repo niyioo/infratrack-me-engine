@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests (PostGIS)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: infratrack
+          POSTGRES_USER: infra
+          POSTGRES_PASSWORD: infra1234
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U infra -d infratrack"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: infratrack
+      DB_USER: infra
+      DB_PASSWORD: infra1234
+      TEST_DB_NAME: infratrack_test
+      SECRET_KEY: ci-only-secret-key-never-used-outside-tests-0123456789
+      # Tests mock task dispatch; eager mode guarantees nothing ever needs a broker.
+      CELERY_TASK_ALWAYS_EAGER: "true"
+      PGPASSWORD: infra1234
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: Install GeoDjango system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gdal-bin libgdal-dev libgeos-dev libproj-dev
+
+      - name: Install Python dependencies
+        run: pip install -r requirements/dev.txt
+
+      # tests/conftest.py reuses a provisioned test database instead of creating one.
+      - name: Provision PostGIS test database
+        run: |
+          psql -h 127.0.0.1 -U infra -d infratrack -c "CREATE DATABASE infratrack_test;"
+          psql -h 127.0.0.1 -U infra -d infratrack_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Migrations match models
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.dev
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+        run: pytest -q -p no:cacheprovider -o addopts="" -rfE
+
+  frontends:
+    name: Type-check ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [frontend, mobile, citizen-portal]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        run: npx tsc --noEmit -p .
+
+  citizen-portal-build:
+    name: Citizen portal production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build container image
+        run: docker build -t infratrack-citizen-portal:ci citizen-portal

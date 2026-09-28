@@ -1,5 +1,7 @@
 # InfraTrack M&E Engine
 
+[![CI](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml)
+
 A project monitoring, evaluation, and disbursement control platform that ties financial releases to geo-verified physical milestones.
 
 > **No verified milestone → No QA approval → No disbursement**
@@ -124,6 +126,61 @@ infratrack-me-engine/
 ├── citizen-portal/  # Public anonymous citizen reporting site
 └── mobile/          # Expo field app
 ```
+
+---
+
+## Testing
+
+CI (`.github/workflows/ci.yml`) runs on every pull request: backend tests against PostGIS,
+a migrations-vs-models check, type-checks for `frontend/`, `mobile/` and `citizen-portal/`,
+and a production build of the citizen portal image.
+
+To run the backend tests locally, the suite expects a provisioned PostGIS test database
+(`tests/conftest.py` reuses it rather than creating one):
+
+```bash
+docker compose up -d db
+docker compose exec db psql -U infra -d infratrack -c "CREATE DATABASE infratrack_test;"
+docker compose exec db psql -U infra -d infratrack_test -c "CREATE EXTENSION postgis;"
+```
+
+Then run `pytest` with `DJANGO_SETTINGS_MODULE=config.settings.test` and `DB_HOST` pointing at that database.
+
+---
+
+## Deployment
+
+Production settings (`config.settings.prod`) refuse to start without these:
+
+| Setting | Why |
+|---|---|
+| `SECRET_KEY` | Strong, unique value (32+ bytes; it also signs JWTs). |
+| `ALLOWED_HOSTS` | Production hostnames. |
+| `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` | Must include **both** the staff dashboard and the citizen portal origins. |
+| `NUM_PROXIES` | Reverse proxies in front of Django (usually `1`). It decides which `X-Forwarded-For` hop is the real client. Too low and every citizen shares the proxy's IP (breaking rate limits and distinct-reporter counts); too high and clients can spoof their address. |
+
+The Django port must only be reachable through that proxy when `NUM_PROXIES` > 0.
+
+### Citizen portal
+
+Build it with the public API URL baked in, and give nginx the API origin for its Content-Security-Policy:
+
+```bash
+export CITIZEN_PORTAL_API_BASE_URL=https://api.example.gov/api/public   # baked into the bundle
+export CITIZEN_PORTAL_API_ORIGIN=https://api.example.gov                # CSP connect-src
+docker compose up -d --build citizen-portal
+```
+
+### Reporter anonymity checklist
+
+The portal promises that a reporter's IP is not saved with their report. The app keeps that promise
+(only a keyed hash is stored, gunicorn has no access log, the portal's nginx logs nothing). Your
+infrastructure must too:
+
+- [ ] The reverse proxy / load balancer in front of the API does **not** log client IPs for `/api/public/`
+      (e.g. `access_log off;` in that nginx `location`, or IP-anonymised logs).
+- [ ] No CDN, analytics or monitoring script is added to the citizen portal (its CSP blocks third parties by default).
+- [ ] `media/citizen_reports/` is backed up and access-controlled like other evidence.
 
 ---
 
