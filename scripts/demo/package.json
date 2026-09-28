@@ -1,0 +1,11 @@
+{
+  "name": "infratrack-demo-recorder",
+  "private": true,
+  "description": "Records a narrated walkthrough video of the citizen-report flow",
+  "scripts": {
+    "record": "node record-demo.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}
