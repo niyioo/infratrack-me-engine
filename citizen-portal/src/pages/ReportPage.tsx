@@ -20,6 +20,15 @@ const MIN_DESCRIPTION = 20;
 const MAX_DESCRIPTION = 2000;
 const MAX_PHOTO_MB = 10;
 
+// Site addresses often already name the LGA/state ("Oke Aro, Akure North, Ondo State"),
+// so only append the parts that aren't in it yet.
+function formatSiteLocation(project: PublicProject) {
+  const address = project.site_address.trim();
+  const lower = address.toLowerCase();
+  const extras = [project.lga, project.state].filter((part) => part && !lower.includes(part.toLowerCase()));
+  return [address, ...extras].filter(Boolean).join(", ");
+}
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -143,7 +152,7 @@ export function ReportPage() {
             <h1 className="mt-1 text-xl font-bold leading-snug tracking-tight">{project.title}</h1>
             <p className="mt-2 flex items-start gap-1.5 text-sm text-slate-500">
               <MapPin size={14} className="mt-0.5 shrink-0" />
-              {project.site_address}, {project.lga}, {project.state}
+              {formatSiteLocation(project)}
             </p>
           </>
         ) : (

@@ -29,6 +29,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: infratrack-me-engine-backend
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DEBUG: "True"
@@ -60,9 +61,8 @@ services:
              gunicorn --bind 0.0.0.0:8000 --workers 2 --reload config.wsgi:application"
 
   celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    # Same code as the backend: reuse its image instead of building copies.
+    image: infratrack-me-engine-backend
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DEBUG: "True"
@@ -87,9 +87,8 @@ services:
     command: celery -A config worker -l info
 
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    # Same code as the backend: reuse its image instead of building copies.
+    image: infratrack-me-engine-backend
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DEBUG: "True"
