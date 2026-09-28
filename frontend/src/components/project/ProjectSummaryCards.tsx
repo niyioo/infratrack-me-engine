@@ -28,9 +28,11 @@ export function ProjectSummaryCards({ project }: { project: Project }) {
       ? `${progress}% verified`
       : "Not tracked";
 
-  const riskValue =
-    project.health_band ??
-    (project.requires_independent_validation ? "Validation Required" : "Standard Review");
+  // Value, colour and subtitle all describe risk_status. Health (score/band) has
+  // its own card; mixing the two showed e.g. "AT_RISK — Within acceptable range".
+  const riskValue = risk
+    ? `${risk.charAt(0)}${risk.slice(1).toLowerCase()} risk`
+    : "Not assessed";
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

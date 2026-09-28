@@ -191,11 +191,22 @@ export function DashboardPage() {
   const recentProjects = summary?.recent_projects ?? [];
   const latestSnapshots = summary?.latest_snapshots ?? [];
 
-  const statusDistributionData = [
+  const namedStatuses = [
     { name: "Active", value: summary?.active_projects ?? 0, color: "#2563eb" },
+    { name: "Awaiting Verification", value: summary?.awaiting_verification_count ?? 0, color: "#7c3aed" },
     { name: "Delayed", value: summary?.delayed_projects_count ?? 0, color: "#f59e0b" },
     { name: "Flagged", value: summary?.flagged_projects_count ?? 0, color: "#dc2626" },
     { name: "Completed", value: summary?.completed_projects_count ?? 0, color: "#059669" },
+  ];
+  // Every project must appear somewhere: whatever isn't in a named bucket
+  // (Not Started, Suspended, Approved for Funding) is counted as "Other".
+  const otherCount = Math.max(
+    0,
+    (summary?.total_projects ?? 0) - namedStatuses.reduce((sum, item) => sum + item.value, 0),
+  );
+  const statusDistributionData = [
+    ...namedStatuses,
+    { name: "Not Started / Other", value: otherCount, color: "#94a3b8" },
   ].filter((item) => item.value > 0);
 
   const burnVsPhysicalData = latestSnapshots.map((snapshot) => ({
