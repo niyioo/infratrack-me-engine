@@ -1,3 +1,4 @@
+import { PressableSurface } from "@/components/ui/PressableSurface";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppBadge } from "@/components/ui/AppBadge";
@@ -54,9 +55,10 @@ export function ProjectListItem({
     project.risk_status === "CRITICAL";
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
-      style={({ pressed }) => [styles.card, isAtRisk && styles.cardAtRisk, pressed && styles.pressed]}
+      style={[styles.card, isAtRisk && styles.cardAtRisk]}
+      pressedStyle={styles.pressed}
     >
       {/* Top row: title + health pill */}
       <View style={styles.topRow}>
@@ -122,7 +124,7 @@ export function ProjectListItem({
       <View style={styles.chevron}>
         <Ionicons name="chevron-forward" size={16} color={colors.slate300} />
       </View>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

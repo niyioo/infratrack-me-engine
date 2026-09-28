@@ -1,0 +1,11 @@
+# Never bake local secrets or uploads into the image; runtime config comes from
+# the environment (docker-compose / the deployment platform).
+.env
+.env.*
+media/
+staticfiles/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

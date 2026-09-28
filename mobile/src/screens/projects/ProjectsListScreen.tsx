@@ -1,3 +1,4 @@
+import { PressableSurface } from "@/components/ui/PressableSurface";
 import { useDeferredValue, useMemo, useState } from "react";
 import { router } from "expo-router";
 import {
@@ -113,13 +114,10 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
     project.risk_status === "CRITICAL";
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        isAtRisk && styles.cardAtRisk,
-        pressed && styles.cardPressed,
-      ]}
+      style={[styles.card, isAtRisk && styles.cardAtRisk]}
+      pressedStyle={styles.cardPressed}
     >
       {/* Header row */}
       <View style={styles.cardHeader}>
@@ -187,14 +185,15 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
       </View>
 
       {/* Open button */}
-      <Pressable
+      <PressableSurface
         onPress={onPress}
-        style={({ pressed }) => [styles.openBtn, pressed && styles.openBtnPressed]}
+        style={[styles.openBtn]}
+      pressedStyle={styles.openBtnPressed}
       >
         <Text style={styles.openBtnText}>Open Project</Text>
         <Ionicons name="arrow-forward" size={14} color={colors.brand} />
-      </Pressable>
-    </Pressable>
+      </PressableSurface>
+    </PressableSurface>
   );
 }
 

@@ -1,7 +1,8 @@
 import { Tabs } from "expo-router";
 import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Platform, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InfraTrackBrand } from "@/components/brand/InfraTrackBrand";
 import { colors, radius } from "@/lib/theme/tokens";
 
@@ -24,6 +25,11 @@ function TabIcon({
 }
 
 export default function MainLayout() {
+  // Use the device's real bottom inset (home indicator / gesture bar) instead of
+  // fixed per-platform numbers, which put labels under the Android gesture bar.
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 8);
+
   return (
     <Tabs
       screenOptions={{
@@ -33,8 +39,8 @@ export default function MainLayout() {
           backgroundColor: colors.white,
           borderTopWidth: 1,
           borderTopColor: colors.slate100,
-          height: Platform.OS === "ios" ? 88 : 68,
-          paddingBottom: Platform.OS === "ios" ? 24 : 8,
+          height: 60 + bottomPad,
+          paddingBottom: bottomPad,
           paddingTop: 8,
           shadowColor: colors.ink,
           shadowOffset: { width: 0, height: -4 },

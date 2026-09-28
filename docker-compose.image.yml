@@ -1,0 +1,22 @@
+# Run the backend from its built image instead of the live ./backend folder.
+#
+# On Windows (Docker Desktop, Hyper-V engine) the ./backend bind mount can stall
+# after a few hours, hanging reloads and photo uploads. Use this for testing and
+# demos; code changes then need a rebuild instead of hot reload:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.image.yml up -d --build
+services:
+  backend:
+    volumes: !override
+      - media_data:/app/media
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 config.wsgi:application"
+
+  celery:
+    volumes: !override
+      - media_data:/app/media
+
+  celery-beat:
+    volumes: !reset []

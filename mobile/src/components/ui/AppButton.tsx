@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Text, StyleSheet, View, ActivityIndicator } from "react-native";
 import { colors, radius, typography } from "@/lib/theme/tokens";
 
@@ -5,19 +6,27 @@ export function AppButton(props: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "ghost";
+  /** "accent" is for dark (brand/ink) backgrounds, where "primary" would blend in. */
+  variant?: "primary" | "accent" | "secondary" | "ghost";
   loading?: boolean;
 }) {
-  const isPrimary = (props.variant ?? "primary") === "primary";
-  const isGhost = props.variant === "ghost";
+  const variant = props.variant ?? "primary";
+  const isPrimary = variant === "primary" || variant === "accent";
+  const isGhost = variant === "ghost";
+  const [pressed, setPressed] = useState(false);
 
+  // A plain style array (not Pressable's style callback): NativeWind's css-interop
+  // wraps Pressable and drops function styles, which left every button with no
+  // background (just text).
   return (
     <Pressable
       onPress={props.onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       disabled={props.disabled || props.loading}
-      style={({ pressed }) => [
+      style={[
         styles.base,
-        isPrimary ? styles.primary : isGhost ? styles.ghost : styles.secondary,
+        variant === "accent" ? styles.accent : isPrimary ? styles.primary : isGhost ? styles.ghost : styles.secondary,
         (props.disabled || props.loading) && styles.disabled,
         pressed && styles.pressed,
       ]}
@@ -43,6 +52,9 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: colors.brand,
+  },
+  accent: {
+    backgroundColor: colors.accent,
   },
   secondary: {
     backgroundColor: colors.white,

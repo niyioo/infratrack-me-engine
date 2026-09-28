@@ -1,3 +1,4 @@
+import { PressableSurface } from "@/components/ui/PressableSurface";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -38,9 +39,10 @@ function QuickAction({
   badge,
 }: QuickActionDef) {
   return (
-    <Pressable
+    <PressableSurface
       onPress={onPress}
-      style={({ pressed }) => [styles.quickCard, pressed && styles.quickCardPressed]}
+      style={[styles.quickCard]}
+      pressedStyle={styles.quickCardPressed}
     >
       <View style={[styles.quickIconWrap, { backgroundColor: iconBg }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
@@ -52,7 +54,7 @@ function QuickAction({
       </View>
       <Text style={styles.quickTitle}>{title}</Text>
       <Text style={styles.quickDescription}>{description}</Text>
-    </Pressable>
+    </PressableSurface>
   );
 }
 
@@ -135,7 +137,7 @@ export function HomeDashboardScreen() {
         </View>
 
         <View style={styles.heroActions}>
-          <AppButton title="Open Projects" onPress={() => router.push("/(main)/projects")} />
+          <AppButton title="Open Projects" variant="accent" onPress={() => router.push("/(main)/projects")} />
           <AppButton
             title="Sync Queue"
             variant="secondary"

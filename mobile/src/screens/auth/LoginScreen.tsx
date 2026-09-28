@@ -11,6 +11,8 @@ import { InfraTrackBrand } from "@/components/brand/InfraTrackBrand";
 import { colors, spacing, typography } from "@/lib/theme/tokens";
 import { fetchCurrentUser, login } from "@/features/auth/api";
 import { setStoredUser, setTokens } from "@/features/auth/storage";
+import { endpoints } from "@/services/api/endpoints";
+import axios from "axios";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,13 +34,25 @@ export default function LoginScreen() {
     setLoading(true);
     setError("");
     try {
-      const tokens = await login({ email, password });
+      const tokens = await login({ email: email.trim(), password });
       await setTokens(tokens.access, tokens.refresh);
       const user = await fetchCurrentUser();
       await setStoredUser(user);
       router.replace("/(main)/dashboard");
-    } catch {
-      setError("Unable to sign in right now. Confirm your credentials and network, then try again.");
+    } catch (err) {
+      // Tell the officer which problem it is: a field officer on poor signal needs
+      // "can't reach the server", not a hint that their password may be wrong.
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      if (status === 401 || status === 400) {
+        setError("Incorrect email or password.");
+      } else if (status === 429) {
+        setError("Too many sign-in attempts. Wait a minute and try again.");
+      } else if (axios.isAxiosError(err) && !err.response) {
+        setError("Can't reach the InfraTrack server. Check your connection and try again.");
+      } else {
+        setError("Sign-in failed on the server. Please try again shortly.");
+      }
+      if (__DEV__) console.warn("Login failed:", status ?? (err as Error)?.message, endpoints.baseUrl);
     } finally {
       setLoading(false);
     }
@@ -118,7 +132,7 @@ export default function LoginScreen() {
               <Text style={styles.footerPanelText}>
                 Sign in to access project monitoring, field capture, and reporting tools.
               </Text>
-              <AppButton title="Sign In Securely" onPress={handleLogin} loading={loading} />
+              <AppButton title="Sign In Securely" variant="accent" onPress={handleLogin} loading={loading} />
               <Text style={styles.footerNote}>
                 This session is protected with secure token storage and role-based access control.
               </Text>
