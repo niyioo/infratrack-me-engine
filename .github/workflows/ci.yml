@@ -12,7 +12,7 @@ concurrency:
 jobs:
   backend:
     name: Backend tests (PostGIS)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       db:
         image: postgis/postgis:16-3.4
@@ -73,7 +73,7 @@ jobs:
 
   frontends:
     name: Type-check ${{ matrix.app }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -98,7 +98,7 @@ jobs:
 
   citizen-portal-build:
     name: Citizen portal production build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Build container image
