@@ -55,6 +55,14 @@ class Project(models.Model):
     created_by = models.ForeignKey(
         "accounts.User", on_delete=models.SET_NULL, null=True, related_name="created_projects"
     )
+    # Denormalised from AnalyticsService so list views (mobile cards, the map)
+    # don't recompute them per row. Refreshed on every status sync, on
+    # disbursement and by the periodic snapshot task; never written by clients.
+    health_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    health_band = models.CharField(max_length=20, blank=True)
+    physical_completion_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    financial_disbursement_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    metrics_refreshed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

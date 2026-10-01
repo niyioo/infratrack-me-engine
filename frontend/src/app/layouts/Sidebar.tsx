@@ -11,6 +11,7 @@ import {
   BarChart3,
   ShieldCheck,
   Megaphone,
+  Map,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks";
 import { version as appVersion } from "../../../package.json";
@@ -26,6 +27,7 @@ import {
   FINANCE_QUEUE_CAPABILITIES,
   INTERVENTION_ACCESS_CAPABILITIES,
   MILESTONE_REVIEW_CAPABILITIES,
+  PORTFOLIO_MAP_CAPABILITIES,
   PROJECT_ACCESS_CAPABILITIES,
 } from "@/lib/constants/capabilityPolicies";
 
@@ -41,6 +43,12 @@ const navItems = [
     to: "/interventions",
     icon: AlertTriangle,
     capabilities: INTERVENTION_ACCESS_CAPABILITIES,
+  },
+  {
+    label: "Map",
+    to: "/map",
+    icon: Map,
+    capabilities: PORTFOLIO_MAP_CAPABILITIES,
   },
   {
     label: "Projects",

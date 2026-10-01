@@ -14,6 +14,7 @@ AUDIT_REVIEWER_ROLE_CODES = HIGH_PRIVILEGE_ROLE_CODES | {"QA_OFFICER"}
 ROLE_CAPABILITIES = {
     "SUPER_ADMIN": {
         "dashboard.view",
+        "reports.export",
         "users.view_directory",
         "projects.view_all",
         "projects.manage",
@@ -33,6 +34,7 @@ ROLE_CAPABILITIES = {
     },
     "PROGRAM_DIRECTOR": {
         "dashboard.view",
+        "reports.export",
         "users.view_directory",
         "projects.view_all",
         "projects.manage",
@@ -51,6 +53,7 @@ ROLE_CAPABILITIES = {
     },
     "AUDITOR": {
         "dashboard.view",
+        "reports.export",
         "users.view_directory",
         "projects.view_all",
         "projects.view_lifecycle",
@@ -65,6 +68,7 @@ ROLE_CAPABILITIES = {
     },
     "M_E_OFFICER": {
         "dashboard.view",
+        "reports.export",
         "projects.manage",
         "projects.dispatch_alerts",
         "projects.view_lifecycle",
@@ -86,6 +90,7 @@ ROLE_CAPABILITIES = {
     },
     "QA_OFFICER": {
         "dashboard.view",
+        "reports.export",
         "projects.view_lifecycle",
         "evidence.review_exceptions",
         "qa.review",
@@ -96,6 +101,7 @@ ROLE_CAPABILITIES = {
     },
     "FINANCE_OFFICER": {
         "dashboard.view",
+        "reports.export",
         "finance.review",
         "notifications.view",
     },

@@ -1,7 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import DecimalField, Sum, Value
+from django.conf import settings
+from django.db.models import Count, DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -17,7 +18,8 @@ from apps.analytics.serializers import (
 )
 from apps.analytics.services import AnalyticsService, DashboardSummaryService
 from apps.analytics.tasks import generate_project_snapshot_task
-from apps.citizen_reports.services import CitizenReportService
+from apps.citizen_reports.models import CitizenReport
+from apps.citizen_reports.services import OPEN_STATUSES, CitizenReportService
 from apps.common.constants import MilestoneStatus
 from apps.evidence.models import GeoFenceExceptionRequest
 from apps.projects.models import Project
@@ -149,6 +151,69 @@ class ProjectMetricSnapshotViewSet(OptionalPaginationMixin, viewsets.ReadOnlyMod
             else None
         )
         return Response(DashboardSummarySerializer(summary).data)
+
+    @action(detail=False, methods=["get"], url_path="portfolio-map")
+    def portfolio_map(self, request):
+        """Projects with a site location, plus open citizen reports for triage roles."""
+        show_citizen = CitizenReportService.can_view(request.user)
+        projects = self._visible_projects().filter(site_location__isnull=False)
+        if show_citizen:
+            projects = projects.annotate(
+                open_citizen_reports=Count("citizen_reports", filter=Q(citizen_reports__status__in=OPEN_STATUSES))
+            )
+
+        project_rows = []
+        for project in projects:
+            row = {
+                "id": project.id,
+                "project_code": project.project_code,
+                "title": project.title,
+                "state": project.state,
+                "lga": project.lga,
+                "site_address": project.site_address,
+                "current_status": project.current_status,
+                "risk_status": project.risk_status,
+                "health_score": project.health_score,
+                "health_band": project.health_band,
+                "physical_completion_percent": project.physical_completion_percent,
+                "budget_amount": project.budget_amount,
+                "latitude": project.site_location.y,
+                "longitude": project.site_location.x,
+            }
+            if show_citizen:
+                row["open_citizen_reports"] = project.open_citizen_reports
+            project_rows.append(row)
+
+        citizen_rows = None
+        if show_citizen:
+            reports = (
+                CitizenReport.objects.filter(
+                    project__in=self._visible_projects(),
+                    status__in=OPEN_STATUSES,
+                    latitude__isnull=False,
+                    longitude__isnull=False,
+                )
+                .select_related("project")
+                .order_by("-created_at")[: settings.MAP_MAX_CITIZEN_REPORTS]
+            )
+            # Never the reporter fingerprint or photo: the map is a signal view, not
+            # a way to identify who reported.
+            citizen_rows = [
+                {
+                    "id": report.id,
+                    "project_id": report.project_id,
+                    "project_title": report.project.title,
+                    "category": report.category,
+                    "category_label": report.get_category_display(),
+                    "status": report.status,
+                    "created_at": report.created_at,
+                    "latitude": report.latitude,
+                    "longitude": report.longitude,
+                }
+                for report in reports
+            ]
+
+        return Response({"projects": project_rows, "citizen_reports": citizen_rows})
 
     @action(detail=False, methods=["post"], url_path="generate/(?P<project_id>[^/.]+)")
     def generate_for_project(self, request, project_id=None):

@@ -40,11 +40,15 @@ class AnalyticsService:
             financial_percent = (disbursed_total * 100) / project.budget_amount
 
         burn_variance = financial_percent - physical_completion
-        delayed_days = max((timezone.now().date() - project.expected_end_date).days, 0) if project.expected_end_date else 0
+        # A finished project's delay is fixed at its end date; measuring to today
+        # would keep eroding its health score forever after completion.
+        delay_until = project.actual_end_date or timezone.now().date()
+        delayed_days = max((delay_until - project.expected_end_date).days, 0) if project.expected_end_date else 0
         flagged_count = project.fraud_flags.filter(status="OPEN").count()
         risk_score = min(max(abs(burn_variance) + flagged_count * 10, 0), 100)
 
         return {
+            "expected_progress_percent": AnalyticsService.expected_progress_percent(project),
             "physical_completion_percent": round(physical_completion, 2),
             "financial_disbursement_percent": round(financial_percent, 2),
             "burn_variance_percent": round(burn_variance, 2),
@@ -56,14 +60,54 @@ class AnalyticsService:
         }
 
     @staticmethod
-    def calculate_health_score(*, physical_completion_percent, financial_disbursement_percent, delayed_days, flagged_count):
+    def expected_progress_percent(project, as_of=None):
+        """Share of the planned timeline elapsed, i.e. where progress should be by now."""
+        start, end = project.start_date, project.expected_end_date
+        if not start or not end or end <= start:
+            return None
+        as_of = as_of or timezone.now().date()
+        if project.actual_end_date and project.actual_end_date < as_of:
+            as_of = project.actual_end_date
+        elapsed = (as_of - start).days / (end - start).days
+        return round(Decimal(max(0.0, min(elapsed, 1.0)) * 100), 2)
+
+    @staticmethod
+    def health_from_values(values):
+        return AnalyticsService.calculate_health_score(
+            physical_completion_percent=values["physical_completion_percent"],
+            financial_disbursement_percent=values["financial_disbursement_percent"],
+            delayed_days=values["delayed_days"],
+            flagged_count=values["flagged_count"],
+            expected_progress_percent=values.get("expected_progress_percent"),
+        )
+
+    @staticmethod
+    def calculate_health_score(
+        *,
+        physical_completion_percent,
+        financial_disbursement_percent,
+        delayed_days,
+        flagged_count,
+        expected_progress_percent=None,
+    ):
         schedule_score = max(0, 100 - min(delayed_days * 2, 100))
         variance_gap = abs(Decimal(financial_disbursement_percent) - Decimal(physical_completion_percent))
         budget_score = max(0, 100 - min(int(variance_gap * 2), 100))
         flag_score = max(0, 100 - min(flagged_count * 25, 100))
 
+        # Progress is judged against plan: a project 10% into its timeline at 10%
+        # complete is on track, and one that hasn't started yet isn't behind.
+        # Without dates to compare against, fall back to raw completion.
+        physical = Decimal(physical_completion_percent)
+        if expected_progress_percent is None:
+            progress_score = physical
+        elif Decimal(expected_progress_percent) <= 0:
+            progress_score = Decimal(100)
+        else:
+            progress_score = min(Decimal(100), physical * 100 / Decimal(expected_progress_percent))
+
         health_score = (
-            Decimal(physical_completion_percent) * Decimal("0.45")
+            progress_score * Decimal("0.45")
             + Decimal(schedule_score) * Decimal("0.25")
             + Decimal(budget_score) * Decimal("0.20")
             + Decimal(flag_score) * Decimal("0.10")
@@ -194,9 +238,31 @@ class AnalyticsService:
         return None
 
     @staticmethod
+    def refresh_project_metrics(project, values=None):
+        """Store health and progress on the project row for cheap list reads."""
+        values = values or AnalyticsService._calculate_snapshot_values(project)
+        health_score = AnalyticsService.health_from_values(values)
+        fields = {
+            "health_score": health_score,
+            "health_band": AnalyticsService.health_band(health_score),
+            "physical_completion_percent": values["physical_completion_percent"],
+            "financial_disbursement_percent": min(values["financial_disbursement_percent"], Decimal("999.99")),
+            "metrics_refreshed_at": timezone.now(),
+        }
+        # .update() rather than save(): metrics aren't an edit, so they shouldn't
+        # bump updated_at or fire save signals.
+        Project.objects.filter(pk=project.pk).update(**fields)
+        for name, value in fields.items():
+            setattr(project, name, value)
+        return fields
+
+    @staticmethod
     def calculate_project_snapshot(project):
         snapshot_date = timezone.now().date()
-        defaults = AnalyticsService._calculate_snapshot_values(project)
+        values = AnalyticsService._calculate_snapshot_values(project)
+        AnalyticsService.refresh_project_metrics(project, values=values)
+        # Expected progress is derived from the project's dates, not stored per snapshot.
+        defaults = {k: v for k, v in values.items() if k != "expected_progress_percent"}
         snapshot, _ = ProjectMetricSnapshot.objects.update_or_create(
             project=project,
             snapshot_date=snapshot_date,

@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -26,6 +28,8 @@ from apps.common.permissions import (
     is_project_managed_by_user,
 )
 from apps.common.pagination import OptionalPaginationMixin
+from apps.common.throttles import ReportExportThrottle
+from apps.projects.reports import collect_project_report, export_projects_csv, render_project_report_pdf
 
 ASSIGNABLE_PROJECT_ROLES = {"M_E_OFFICER", "FIELD_OFFICER", "CONTRACTOR", "QA_OFFICER", "FINANCE_OFFICER"}
 INITIAL_PROJECT_STATUSES = {ProjectStatus.NOT_STARTED, ProjectStatus.ACTIVE}
@@ -33,6 +37,10 @@ PROJECT_AUDIT_FIELDS = [
     "id", "project_code", "title", "agency", "contractor", "current_status", "risk_status",
     "state", "lga", "budget_amount", "geo_fence_radius_meters",
 ]
+
+
+# Excel only reads a UTF-8 CSV correctly (e.g. the naira sign) when it starts with a BOM.
+CSV_BOM = "﻿"
 
 
 class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
@@ -59,6 +67,8 @@ class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
         "dispatch_alerts": ("projects.dispatch_alerts",),
         "dispatch_reporting_reminder": ("projects.dispatch_alerts",),
         "lifecycle_events": ("projects.view_lifecycle",),
+        "report": ("reports.export",),
+        "export": ("reports.export",),
     }
 
     search_fields = ["project_code", "title", "state", "lga"]
@@ -122,6 +132,56 @@ class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
             assignments__is_active=True
         ).distinct()
 
+    def get_throttles(self):
+        if self.action in ("report", "export"):
+            return [ReportExportThrottle()]
+        return super().get_throttles()
+
+    @action(detail=True, methods=["get"])
+    def report(self, request, pk=None):
+        """PDF monitoring report for funders and auditors."""
+        project = self.get_object()
+        generated_at = timezone.localtime()
+        user_label = request.user.full_name or request.user.email
+        data = collect_project_report(project, user=request.user)
+        pdf, fingerprint = render_project_report_pdf(
+            data, generated_by=user_label, generated_at=generated_at.strftime("%d %b %Y %H:%M %Z")
+        )
+        AuditService.log_event(
+            event_type="PROJECT_REPORT_EXPORTED",
+            actor=request.user,
+            project=project,
+            action="EXPORT",
+            object_type="Project",
+            object_id=str(project.id),
+            metadata={"format": "pdf", "fingerprint": fingerprint},
+            request=request,
+        )
+        filename = f"{project.project_code}-report-{generated_at:%Y%m%d-%H%M}.pdf"
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["X-Report-Fingerprint"] = fingerprint
+        return response
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        """CSV of every project the user can see, honouring the list filters."""
+        projects = self.filter_queryset(self.get_queryset())
+        generated_at = timezone.localtime()
+        body = export_projects_csv(projects)
+        AuditService.log_event(
+            event_type="PROJECT_PORTFOLIO_EXPORTED",
+            actor=request.user,
+            action="EXPORT",
+            object_type="Project",
+            object_id="",
+            metadata={"format": "csv", "rows": projects.count(), "filters": dict(request.query_params)},
+            request=request,
+        )
+        response = HttpResponse(CSV_BOM + body, content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="infratrack-projects-{generated_at:%Y%m%d-%H%M}.csv"'
+        return response
+
     def perform_create(self, serializer):
         initial_status = serializer.validated_data.get("current_status", ProjectStatus.NOT_STARTED)
         if initial_status not in INITIAL_PROJECT_STATUSES:
@@ -135,6 +195,7 @@ class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
             assignment_role="M_E_OFFICER",
             assigned_by=self.request.user,
         )
+        ProjectService.refresh_metrics(project)
 
         AuditService.log_event(
             event_type="PROJECT_CREATED",
@@ -177,6 +238,8 @@ class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
                 user=self.request.user,
                 reason="Status changed via project edit.",
             )
+        # Budget and end-date edits move the financial % and delay figures.
+        ProjectService.refresh_metrics(project)
 
         AuditService.log_event(
             event_type="PROJECT_UPDATED",

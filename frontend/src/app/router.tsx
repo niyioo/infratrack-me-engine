@@ -14,6 +14,7 @@ import {
   FINANCE_QUEUE_CAPABILITIES,
   INTERVENTION_ACCESS_CAPABILITIES,
   MILESTONE_REVIEW_CAPABILITIES,
+  PORTFOLIO_MAP_CAPABILITIES,
   PROJECT_ACCESS_CAPABILITIES,
   PROJECT_CREATE_CAPABILITIES
 } from "@/lib/constants/capabilityPolicies";
@@ -50,6 +51,9 @@ const DisbursementHistoryPage = lazy(() =>
 );
 const CitizenReportsPage = lazy(() =>
   import("@/pages/citizenReports/CitizenReportsPage").then((module) => ({ default: module.CitizenReportsPage }))
+);
+const PortfolioMapPage = lazy(() =>
+  import("@/pages/map/PortfolioMapPage").then((module) => ({ default: module.PortfolioMapPage }))
 );
 const AnalyticsPage = lazy(() => import("@/pages/analytics/AnalyticsPage").then((module) => ({ default: module.AnalyticsPage })));
 const AuditTrailPage = lazy(() => import("@/pages/audits/AuditTrailPage").then((module) => ({ default: module.AuditTrailPage })));
@@ -93,6 +97,10 @@ export const router = createBrowserRouter([
           {
             path: "/interventions",
             element: withRoleGuard([...INTERVENTION_ACCESS_CAPABILITIES], <InterventionQueuePage />)
+          },
+          {
+            path: "/map",
+            element: withRoleGuard([...PORTFOLIO_MAP_CAPABILITIES], <PortfolioMapPage />)
           },
           {
             path: "/projects",

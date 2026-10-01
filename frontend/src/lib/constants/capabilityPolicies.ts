@@ -24,3 +24,7 @@ export const CITIZEN_REPORT_CAPABILITIES = ["citizen_reports.triage"] as const;
 export const FRAUD_FLAG_RESOLVE_CAPABILITIES = ["fraud_flags.resolve"] as const;
 
 export const GEOFENCE_EXCEPTION_REVIEW_CAPABILITIES = ["evidence.review_exceptions"] as const;
+
+export const REPORT_EXPORT_CAPABILITIES = ["reports.export"] as const;
+
+export const PORTFOLIO_MAP_CAPABILITIES = ["dashboard.view"] as const;

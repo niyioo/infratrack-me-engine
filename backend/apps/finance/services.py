@@ -89,6 +89,7 @@ class FinanceService:
             released_by_user,
             reason=f"Tranche {tranche.tranche_number} disbursed."
         )
+        ProjectService.refresh_metrics(tranche.project)
 
         AuditService.log_event(
             event_type="TRANCHE_DISBURSED",

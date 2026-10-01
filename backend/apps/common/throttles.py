@@ -23,3 +23,7 @@ class CitizenReportThrottle(AnonRateThrottle):
 
 class CitizenLookupThrottle(CitizenReportThrottle):
     scope = "citizen_lookup"
+
+
+class ReportExportThrottle(UserRateThrottle):
+    scope = "report_export"

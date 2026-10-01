@@ -132,6 +132,7 @@ REST_FRAMEWORK = {
         "override_request": env("THROTTLE_OVERRIDE_REQUEST", default="10/day"),
         "citizen_report": env("THROTTLE_CITIZEN_REPORT", default="10/hour"),
         "citizen_lookup": env("THROTTLE_CITIZEN_LOOKUP", default="120/hour"),
+        "report_export": env("THROTTLE_REPORT_EXPORT", default="60/hour"),
     },
     # How many reverse proxies sit in front of Django. X-Forwarded-For is only trusted
     # this many hops deep; 0 means use REMOTE_ADDR (set to 1 behind nginx/a load balancer).
@@ -143,6 +144,8 @@ CITIZEN_REPORT_WINDOW_DAYS = env.int("CITIZEN_REPORT_WINDOW_DAYS", default=30)
 CITIZEN_REPORT_HIGH_THRESHOLD = env.int("CITIZEN_REPORT_HIGH_THRESHOLD", default=3)
 CITIZEN_REPORT_CRITICAL_THRESHOLD = env.int("CITIZEN_REPORT_CRITICAL_THRESHOLD", default=6)
 CITIZEN_REPORT_DAILY_LIMIT_PER_PROJECT = env.int("CITIZEN_REPORT_DAILY_LIMIT_PER_PROJECT", default=3)
+# Newest open reports plotted on the staff portfolio map.
+MAP_MAX_CITIZEN_REPORTS = env.int("MAP_MAX_CITIZEN_REPORTS", default=1000)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=60)),
@@ -210,6 +213,8 @@ CSRF_TRUSTED_ORIGINS = env.list(
     ],
 )
 CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=True)
+# Let the dashboard read download filenames and report fingerprints cross-origin.
+CORS_EXPOSE_HEADERS = ["Content-Disposition", "X-Report-Fingerprint"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

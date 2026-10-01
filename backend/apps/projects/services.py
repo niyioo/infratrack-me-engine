@@ -94,6 +94,19 @@ class ProjectService:
 
     @staticmethod
     def sync_operational_status(project, user=None, reason=""):
+        status = ProjectService._sync_status(project, user=user, reason=reason)
+        ProjectService.refresh_metrics(project)
+        return status
+
+    @staticmethod
+    def refresh_metrics(project):
+        # Local import: analytics.services imports projects.models.
+        from apps.analytics.services import AnalyticsService
+
+        return AnalyticsService.refresh_project_metrics(project)
+
+    @staticmethod
+    def _sync_status(project, user=None, reason=""):
         if project.current_status in ProjectService.MANUAL_PROJECT_STATUSES:
             return project.current_status
 

@@ -19,6 +19,7 @@ class ProjectMetricSnapshotSerializer(serializers.ModelSerializer):
             financial_disbursement_percent=obj.financial_disbursement_percent,
             delayed_days=obj.delayed_days,
             flagged_count=obj.flagged_count,
+            expected_progress_percent=AnalyticsService.expected_progress_percent(obj.project, as_of=obj.snapshot_date),
         )
 
     def get_health_band(self, obj):

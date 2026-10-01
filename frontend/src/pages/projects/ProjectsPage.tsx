@@ -10,6 +10,7 @@ import { QueryStateCard } from "@/components/ui/QueryStateCard";
 import { Select } from "@/components/ui/Select";
 import { ProjectsTable } from "@/components/tables/ProjectsTable";
 import { useAuth } from "@/features/auth/hooks";
+import { exportProjectsCsv } from "@/features/projects/api";
 import { useDeleteProject, useProjects } from "@/features/projects/hooks";
 import type { Project } from "@/features/projects/types";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -28,6 +29,8 @@ export function ProjectsPage() {
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
   const debouncedSearch = useDebounce(search, 400);
   const canManageProjects = capabilities.includes("projects.manage");
+  const canExport = capabilities.includes("reports.export");
+  const [exporting, setExporting] = useState(false);
 
   const status = get("status");
 
@@ -70,11 +73,42 @@ export function ProjectsPage() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      // Same filters as the table, minus paging: the export is every match.
+      const params: Record<string, string> = {};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (status) params.current_status = status;
+      await exportProjectsCsv(params);
+    } catch (error) {
+      setFeedback({ message: getApiErrorMessage(error, "The export could not be generated."), variant: "error" });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <PageShell
       title="Projects"
       description="Manage and monitor all registered infrastructure projects."
-      actions={canManageProjects ? <Button onClick={() => navigate("/projects/new")}>+ New Project</Button> : null}
+      actions={
+        canManageProjects || canExport ? (
+          <div className="flex items-center gap-2">
+            {canExport ? (
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {exporting ? "Exporting…" : "Export CSV"}
+              </button>
+            ) : null}
+            {canManageProjects ? <Button onClick={() => navigate("/projects/new")}>+ New Project</Button> : null}
+          </div>
+        ) : null
+      }
     >
       {feedback ? <Alert message={feedback.message} variant={feedback.variant} /> : null}
       {!canManageProjects ? (

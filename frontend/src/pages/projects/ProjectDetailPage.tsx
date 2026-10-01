@@ -18,6 +18,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { PageShell } from "@/app/layouts/PageShell";
 import { useAuth } from "@/features/auth/hooks";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
+import { ProjectReportButton } from "@/components/project/ProjectReportButton";
 import { ProjectSummaryCards } from "@/components/project/ProjectSummaryCards";
 import { ProjectAssignmentsPanel } from "@/components/project/ProjectAssignmentsPanel";
 import { ProjectEvidenceGallery } from "@/components/project/ProjectEvidenceGallery";
@@ -188,6 +189,7 @@ export function ProjectDetailPage() {
     <PageShell
       title="Project Details"
       description="Profile, progress, verification, and finance status."
+      actions={capabilities.includes("reports.export") ? <ProjectReportButton project={project} /> : null}
     >
       {/* ── Header + Tabs merged into one card ──────────────────────── */}
       <Card>

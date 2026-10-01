@@ -58,7 +58,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             "expected_end_date", "actual_end_date", "current_status",
             "reporting_frequency", "risk_status", "requires_independent_validation",
             "inspection_required", "evidence_required", "notes", "created_at",
-            "lifecycle_stage",
+            "lifecycle_stage", "health_score", "health_band",
+            "physical_completion_percent", "financial_disbursement_percent",
+            "metrics_refreshed_at",
         ]
 
     def get_latitude(self, obj):
@@ -93,12 +95,10 @@ class ProjectDetailSerializer(ProjectSerializer):
     citizen_reports = serializers.SerializerMethodField()
 
     class Meta(ProjectSerializer.Meta):
+        # health/progress are already in the list fields (stored values); here they
+        # are recomputed live by the method fields above.
         fields = ProjectSerializer.Meta.fields + [
-            "health_score",
-            "health_band",
             "alerts",
-            "physical_completion_percent",
-            "financial_disbursement_percent",
             "burn_variance_percent",
             "delayed_days",
             "total_milestones",
@@ -132,13 +132,7 @@ class ProjectDetailSerializer(ProjectSerializer):
         return snapshot_values
 
     def get_health_score(self, obj):
-        values = self._snapshot_values(obj)
-        return AnalyticsService.calculate_health_score(
-            physical_completion_percent=values["physical_completion_percent"],
-            financial_disbursement_percent=values["financial_disbursement_percent"],
-            delayed_days=values["delayed_days"],
-            flagged_count=values["flagged_count"],
-        )
+        return AnalyticsService.health_from_values(self._snapshot_values(obj))
 
     def get_health_band(self, obj):
         return AnalyticsService.health_band(self.get_health_score(obj))
@@ -208,6 +202,13 @@ class ProjectCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         exclude = ("site_location", "created_by",)
+        read_only_fields = (
+            "health_score",
+            "health_band",
+            "physical_completion_percent",
+            "financial_disbursement_percent",
+            "metrics_refreshed_at",
+        )
 
     def validate(self, attrs):
         start_date = attrs.get("start_date", getattr(self.instance, "start_date", None))
