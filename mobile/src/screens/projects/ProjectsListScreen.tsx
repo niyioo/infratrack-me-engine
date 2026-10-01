@@ -153,7 +153,7 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
         <View style={styles.progressMeta}>
           <Text style={styles.progressLabel}>Physical Progress</Text>
           <Text style={[styles.progressPct, { color: progressBarColor(progress) }]}>
-            {progress}%
+            {Math.round(progress)}%
           </Text>
         </View>
         <ProgressBar value={progress} />

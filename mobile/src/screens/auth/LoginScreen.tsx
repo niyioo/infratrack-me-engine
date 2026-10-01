@@ -142,6 +142,25 @@ export default function LoginScreen() {
               </Text>
             </View>
           </AppCard>
+
+          {/* Citizens use the same app without an account. */}
+          <View style={styles.citizenCard}>
+            <View style={styles.citizenHeader}>
+              <Ionicons name="megaphone-outline" size={20} color={colors.accentStrong} />
+              <Text style={styles.citizenTitle}>Not a staff member?</Text>
+            </View>
+            <Text style={styles.citizenText}>
+              Report a problem with a public project near you. No account, name or phone number needed.
+            </Text>
+            <View style={styles.citizenButtons}>
+              <View style={{ flex: 1 }}>
+                <AppButton title="Report a project" variant="accent" onPress={() => router.push("/(citizen)/report")} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppButton title="Track a report" variant="secondary" onPress={() => router.push("/(citizen)/track")} />
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -221,6 +240,34 @@ const styles = StyleSheet.create({
     color: colors.slate300,
     fontWeight: "500",
     textAlign: "center",
+  },
+  citizenCard: {
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: "#B7E4DF",
+  },
+  citizenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  citizenTitle: {
+    ...typography.sectionTitle,
+    color: colors.ink,
+  },
+  citizenText: {
+    ...typography.caption,
+    color: colors.slate600,
+    lineHeight: 18,
+  },
+  citizenButtons: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   passwordToggle: {
     width: 36,

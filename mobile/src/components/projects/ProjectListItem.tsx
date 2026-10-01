@@ -99,7 +99,7 @@ export function ProjectListItem({
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Physical Progress</Text>
-            <Text style={styles.progressValue}>{progress}%</Text>
+            <Text style={styles.progressValue}>{Math.round(progress)}%</Text>
           </View>
           <ProgressBar value={progress} />
         </View>

@@ -334,7 +334,7 @@ export function ProjectDetailScreen() {
           <View style={styles.progressItem}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Physical Progress</Text>
-              <Text style={styles.progressPct}>{physicalPct}%</Text>
+              <Text style={styles.progressPct}>{Math.round(physicalPct)}%</Text>
             </View>
             <ProgressBar
               value={physicalPct}
@@ -345,7 +345,7 @@ export function ProjectDetailScreen() {
           <View style={styles.progressItem}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Financial Disbursed</Text>
-              <Text style={styles.progressPct}>{financialPct}%</Text>
+              <Text style={styles.progressPct}>{Math.round(financialPct)}%</Text>
             </View>
             <ProgressBar
               value={financialPct}
