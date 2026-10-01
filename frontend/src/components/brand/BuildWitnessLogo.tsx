@@ -1,4 +1,4 @@
-type InfraTrackLogoProps = {
+type BuildWitnessLogoProps = {
   className?: string;
   showWordmark?: boolean;
   size?: number;
@@ -30,11 +30,11 @@ function SymbolMark({ size = 44 }: { size?: number }) {
   );
 }
 
-export function InfraTrackLogo({
+export function BuildWitnessLogo({
   className = "",
   showWordmark = true,
   size = 44,
-}: InfraTrackLogoProps) {
+}: BuildWitnessLogoProps) {
   if (!showWordmark) {
     return <SymbolMark size={size} />;
   }
@@ -42,9 +42,9 @@ export function InfraTrackLogo({
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
       <SymbolMark size={size} />
-      <div className="text-[1.85rem] font-extrabold leading-none tracking-[-0.05em]">
-        <span style={{ color: "#0F3D78" }}>Infra</span>
-        <span style={{ color: "#0F9C92" }}>Track</span>
+      <div className="text-[1.6rem] font-extrabold leading-none tracking-[-0.05em]">
+        <span style={{ color: "#0F3D78" }}>Build</span>
+        <span style={{ color: "#0F9C92" }}>Witness</span>
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ export function Layout() {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white">
               <Landmark size={16} />
             </span>
-            <span className="text-sm tracking-tight sm:text-base">InfraTrack Citizen</span>
+            <span className="text-sm tracking-tight sm:text-base">BuildWitness Citizen</span>
           </Link>
           <nav className="flex items-center gap-1 text-sm font-medium">
             {[

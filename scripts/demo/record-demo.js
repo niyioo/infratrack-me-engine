@@ -1,4 +1,4 @@
-// Records a narrated walkthrough of InfraTrack's citizen-report → fraud-flag flow.
+// Records a narrated walkthrough of BuildWitness's citizen-report → fraud-flag flow.
 // Run: node record-demo.js  (stack must be running on :5173 / :5174 / :8000)
 const { chromium } = require("playwright-core");
 const fs = require("fs");
@@ -164,7 +164,7 @@ async function makeSitePhoto(page, file) {
   await page.goto(PORTAL);
   await page.getByText("Find the project").waitFor();
   await page.mouse.move(mouse.x, mouse.y);
-  await caption(page, { title: "InfraTrack — citizen reporting that can stop payment for unfinished work",
+  await caption(page, { title: "BuildWitness — citizen reporting that can stop payment for unfinished work",
     sub: "Walkthrough: a citizen reports a stalled site → staff verify → payment is blocked → resolved with two-person sign-off.", hold: 4200 });
   await hideCaption(page);
 
@@ -198,7 +198,7 @@ async function makeSitePhoto(page, file) {
   await hideCaption(page);
 
   // ── 2. Staff dashboard ──────────────────────────────────────────────────
-  await login(page, "admin@infratrack.local");
+  await login(page, "admin@buildwitness.local");
   const card = page.locator('main a[href="/citizen-reports"]');
   await scrollTo(page, card);
   await moveTo(page, card);
@@ -253,7 +253,7 @@ async function makeSitePhoto(page, file) {
   await logout(page);
   await caption(page, { step: 6, title: "A separate QA reviewer signs in", hold: 1800 });
   await hideCaption(page);
-  await login(page, "qa@infratrack.local");
+  await login(page, "qa@buildwitness.local");
   await openRiskTab(page);
   const resolveBtn2 = page.getByRole("button", { name: "Resolve", exact: true });
   await scrollTo(page, resolveBtn2);
@@ -279,7 +279,7 @@ async function makeSitePhoto(page, file) {
   await hideCaption(page);
 
   // ── Outro ───────────────────────────────────────────────────────────────
-  await caption(page, { title: "InfraTrack: no verified work → no approval → no payment",
+  await caption(page, { title: "BuildWitness: no verified work → no approval → no payment",
     sub: "Citizens add eyes on the ground; staff keep control; every step is audited.", hold: 4200 });
 
   const frameCount = await stopCapture();
@@ -288,7 +288,7 @@ async function makeSitePhoto(page, file) {
   console.log("CAPTURED", frameCount, "frames; report code", code);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const final = path.join(OUT_DIR, "infratrack-citizen-report-demo.webm");
+  const final = path.join(OUT_DIR, "buildwitness-citizen-report-demo.webm");
   execFileSync(process.execPath, [path.join(__dirname, "encode.js"), FRAMES, final], { stdio: "inherit" });
   console.log("DONE", final);
 })().catch((err) => { console.error("FAILED:", err.message); process.exit(1); });

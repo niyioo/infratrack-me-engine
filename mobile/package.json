@@ -1,5 +1,5 @@
 {
-  "name": "infratrack-mobile",
+  "name": "buildwitness-mobile",
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
@@ -7,7 +7,9 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "prebuild:android": "expo prebuild --platform android --clean",
+    "build:android:apk": "npm run prebuild:android && cd android && gradlew assembleRelease"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

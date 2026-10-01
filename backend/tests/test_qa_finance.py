@@ -772,3 +772,16 @@ def test_disbursement_keeps_the_project_delivery_status(db):
     project.refresh_from_db()
     assert project.current_status == "ACTIVE"
     assert project.financial_disbursement_percent > 0
+
+
+def test_evidence_files_get_unguessable_names(db):
+    field_user, agency = make_user("field-names@example.com", "FIELD_OFFICER")
+    project = make_project(agency=agency, created_by=field_user, code="PRJ-NAME-01")
+    milestone = make_milestone(project, 1)
+    submission = make_submission(project, milestone, field_user)
+
+    stored = submission.files.get().file.name
+
+    assert stored.startswith(f"evidence/project_{project.id}/")
+    assert "ev.jpg" not in stored and f"milestone_{milestone.id}" not in stored
+    assert stored.endswith(".jpg") and len(stored.rsplit("/", 1)[1]) == 32 + 4

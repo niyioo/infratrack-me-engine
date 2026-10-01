@@ -1,10 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { OfflineEvidenceItem } from "@/features/evidence/types";
 
-const OFFLINE_QUEUE_KEY = "infratrack_offline_evidence_queue";
+const OFFLINE_QUEUE_KEY = "buildwitness_offline_evidence_queue";
+// Key used before the app was renamed. Unsynced evidence saved under it must
+// survive the update, so it's moved across on first read.
+const LEGACY_OFFLINE_QUEUE_KEY = "infratrack_offline_evidence_queue";
+
+async function readQueue() {
+  const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+  if (raw != null) return raw;
+  const legacy = await AsyncStorage.getItem(LEGACY_OFFLINE_QUEUE_KEY);
+  if (legacy != null) {
+    await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, legacy);
+    await AsyncStorage.removeItem(LEGACY_OFFLINE_QUEUE_KEY);
+  }
+  return legacy;
+}
 
 export async function getOfflineQueue(): Promise<OfflineEvidenceItem[]> {
-  const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+  const raw = await readQueue();
   if (!raw) return [];
   try {
     return JSON.parse(raw) as OfflineEvidenceItem[];

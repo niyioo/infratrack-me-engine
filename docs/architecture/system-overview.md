@@ -1,6 +1,6 @@
 # System Overview
 
-InfraTrack is a three-client system built around a single Django REST API.
+BuildWitness is a three-client system built around a single Django REST API.
 
 - `backend/` contains the Django + DRF application, GeoDjango models, JWT auth, and business workflows for projects, milestones, evidence, QA, finance, audits, analytics, and notifications.
 - `frontend/` is the React/Vite web dashboard for administrators, QA reviewers, finance teams, and oversight users.

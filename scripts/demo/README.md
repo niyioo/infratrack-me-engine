@@ -13,7 +13,7 @@ Records a narrated, captioned walkthrough of the citizen-report flow:
 ## Run
 
 Start the full stack first (`docker compose up -d`, then the staff dashboard on
-:5173). Use seeded demo data (`python manage.py seed_infratrack`) and log-ins from
+:5173). Use seeded demo data (`python manage.py seed_buildwitness`) and log-ins from
 the main README.
 
 ```bash
@@ -22,7 +22,7 @@ npm install
 npm run record
 ```
 
-Output: `video/infratrack-citizen-report-demo.webm` (1366×768, VP9), about 3 minutes.
+Output: `video/buildwitness-citizen-report-demo.webm` (1366×768, VP9), about 3 minutes.
 
 ## Notes
 

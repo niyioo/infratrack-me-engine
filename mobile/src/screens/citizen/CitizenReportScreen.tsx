@@ -399,7 +399,7 @@ export default function CitizenReportScreen() {
               title="Share code"
               variant="secondary"
               onPress={() =>
-                Share.share({ message: `InfraTrack report ${result.tracking_code} — ${result.project_title}` })
+                Share.share({ message: `BuildWitness report ${result.tracking_code} — ${result.project_title}` })
               }
             />
             <AppButton

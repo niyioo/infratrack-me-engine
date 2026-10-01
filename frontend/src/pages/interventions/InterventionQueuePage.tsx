@@ -40,7 +40,7 @@ export function InterventionQueuePage() {
         <QueryStateCard
           state="error"
           title="Intervention worklist unavailable"
-          description="InfraTrack could not load the intervention and compliance queues right now."
+          description="BuildWitness could not load the intervention and compliance queues right now."
         />
       </PageShell>
     );

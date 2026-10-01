@@ -28,7 +28,12 @@ RUN pip install --no-cache-dir -r requirements/prod.txt
 
 COPY . /app/
 
+# media/ and staticfiles/ are excluded from the build context, so create them here:
+# a new named volume mounted on a path takes that path's ownership from the image,
+# and without these the volumes come up root-owned and the app user can't write
+# uploads or collectstatic output.
 RUN useradd --create-home --shell /bin/bash app \
+    && mkdir -p /app/media /app/staticfiles \
     && chown -R app:app /app
 USER app
 

@@ -10,17 +10,17 @@ if (-not (Test-Path $pythonExe)) {
 
 $commands = @(
     @{
-        Title = "InfraTrack API"
+        Title = "BuildWitness API"
         Command = "$env:DJANGO_SETTINGS_MODULE='config.settings.dev'; & '$pythonExe' manage.py runserver 0.0.0.0:8000"
         WorkingDirectory = $backendDir
     },
     @{
-        Title = "InfraTrack Celery Worker"
+        Title = "BuildWitness Celery Worker"
         Command = "$env:DJANGO_SETTINGS_MODULE='config.settings.dev'; & '$pythonExe' -m celery -A config worker -l info"
         WorkingDirectory = $backendDir
     },
     @{
-        Title = "InfraTrack Celery Beat"
+        Title = "BuildWitness Celery Beat"
         Command = "$env:DJANGO_SETTINGS_MODULE='config.settings.dev'; & '$pythonExe' -m celery -A config beat -l info"
         WorkingDirectory = $backendDir
     }

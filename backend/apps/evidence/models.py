@@ -1,3 +1,6 @@
+import os
+import uuid
+
 from django.db import models
 from apps.common.constants import SubmissionStatus, SourceType, GeoValidationStatus
 
@@ -44,7 +47,14 @@ class EvidenceSubmission(models.Model):
 
 
 def evidence_upload_path(instance, filename):
-    return f"evidence/project_{instance.evidence_submission.project_id}/milestone_{instance.evidence_submission.milestone_id}/{filename}"
+    # Random names: production serves MEDIA without auth, so evidence URLs must be
+    # unguessable (the old project/milestone/original-name pattern was enumerable).
+    # The uploaded name is kept in EvidenceFile.original_filename.
+    extension = os.path.splitext(filename)[1].lower()
+    if not extension or len(extension) > 6 or not extension[1:].isalnum():
+        extension = ""
+    submission = instance.evidence_submission
+    return f"evidence/project_{submission.project_id}/{uuid.uuid4().hex}{extension}"
 
 
 class EvidenceFile(models.Model):

@@ -1,5 +1,5 @@
 {
-  "name": "infratrack-demo-recorder",
+  "name": "buildwitness-demo-recorder",
   "private": true,
   "description": "Records a narrated walkthrough video of the citizen-report flow",
   "scripts": {

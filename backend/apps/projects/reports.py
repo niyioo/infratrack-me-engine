@@ -25,6 +25,11 @@ def _money(value, currency):
     return f"{currency} {Decimal(value or 0):,.2f}"
 
 
+def _label(code):
+    """CITIZEN_REPORT_ESCALATION -> Citizen report escalation."""
+    return (code or "").replace("_", " ").capitalize() or "—"
+
+
 def _date(value):
     return value.strftime("%d %b %Y") if value else "—"
 
@@ -95,9 +100,9 @@ def collect_project_report(project, *, user):
     fraud_flags = [
         {
             "raised": _date(f.created_at),
-            "type": f.flag_type,
-            "severity": f.severity,
-            "status": f.status,
+            "type": _label(f.flag_type),
+            "severity": _label(f.severity),
+            "status": _label(f.status),
             "resolution": f.resolution_note or "—",
         }
         for f in project.fraud_flags.order_by("-created_at")
@@ -215,7 +220,7 @@ def render_project_report_pdf(data, *, generated_by, generated_at):
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(muted)
-        canvas.drawString(15 * mm, 10 * mm, f"InfraTrack · {project['code']} · Fingerprint {fingerprint[:16]}…")
+        canvas.drawString(15 * mm, 10 * mm, f"BuildWitness · {project['code']} · Fingerprint {fingerprint[:16]}…")
         canvas.drawRightString(A4[0] - 15 * mm, 10 * mm, f"Page {doc.page}")
         canvas.setStrokeColor(accent)
         canvas.setLineWidth(2)
@@ -331,7 +336,7 @@ def render_project_report_pdf(data, *, generated_by, generated_at):
         topMargin=18 * mm,
         bottomMargin=18 * mm,
         title=f"{project['code']} project report",
-        author="InfraTrack",
+        author="BuildWitness",
     )
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return buffer.getvalue(), fingerprint

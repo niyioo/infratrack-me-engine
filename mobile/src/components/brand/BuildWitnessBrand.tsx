@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "@/lib/theme/tokens";
 
-type InfraTrackBrandProps = {
+type BuildWitnessBrandProps = {
   size?: "sm" | "md" | "lg";
   showWordmark?: boolean;
   stacked?: boolean;
@@ -20,12 +20,12 @@ function fontSizeFor(size: "sm" | "md" | "lg") {
   return 24;
 }
 
-export function InfraTrackBrand({
+export function BuildWitnessBrand({
   size = "md",
   showWordmark = true,
   stacked = false,
   light = false,
-}: InfraTrackBrandProps) {
+}: BuildWitnessBrandProps) {
   const dimension = dimensionFor(size);
   const fontSize = fontSizeFor(size);
   const ink = light ? colors.white : "#0F3D78";
@@ -51,8 +51,8 @@ export function InfraTrackBrand({
 
       {showWordmark ? (
         <View style={[styles.wordmarkRow, stacked && styles.wordmarkStacked]}>
-          <Text style={[styles.wordmark, { color: ink, fontSize }]}>Infra</Text>
-          <Text style={[styles.wordmark, { color: teal, fontSize }]}>Track</Text>
+          <Text style={[styles.wordmark, { color: ink, fontSize }]}>Build</Text>
+          <Text style={[styles.wordmark, { color: teal, fontSize }]}>Witness</Text>
         </View>
       ) : null}
     </View>

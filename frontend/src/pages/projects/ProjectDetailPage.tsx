@@ -372,7 +372,7 @@ export function ProjectDetailPage() {
               <QueryStateCard
                 state="error"
                 title="Assignments unavailable"
-                description="InfraTrack could not load the assignment roster."
+                description="BuildWitness could not load the assignment roster."
               />
             ) : (
               <ProjectAssignmentsPanel assignments={assignments} />

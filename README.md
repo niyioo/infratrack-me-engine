@@ -1,4 +1,4 @@
-# InfraTrack M&E Engine
+# BuildWitness M&E Engine
 
 [![CI](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml)
 
@@ -10,7 +10,7 @@ A project monitoring, evaluation, and disbursement control platform that ties fi
 
 ## What It Does
 
-InfraTrack replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
+BuildWitness replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
 
 Built for ministries, donor-funded programs, public works teams, and institutional oversight units.
 
@@ -46,7 +46,7 @@ python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate o
 pip install -r requirements.txt
 # Configure backend/.env (see README details)
 python manage.py migrate
-python manage.py seed_infratrack
+python manage.py seed_buildwitness
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -108,10 +108,10 @@ Set `NUM_PROXIES` correctly in production, or every citizen will appear to share
 
 | Role | Email |
 |---|---|
-| Admin | `admin@infratrack.local` |
-| Field Officer | `field@infratrack.local` |
-| QA Reviewer | `qa@infratrack.local` |
-| Finance | `finance@infratrack.local` |
+| Admin | `admin@buildwitness.local` |
+| Field Officer | `field@buildwitness.local` |
+| QA Reviewer | `qa@buildwitness.local` |
+| Finance | `finance@buildwitness.local` |
 
 **Password:** `Password123!`
 
@@ -150,37 +150,14 @@ Then run `pytest` with `DJANGO_SETTINGS_MODULE=config.settings.test` and `DB_HOS
 
 ## Deployment
 
-Production settings (`config.settings.prod`) refuse to start without these:
+**Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).** It takes a fresh server to a
+running pilot with one Compose file ([`deploy/docker-compose.prod.yml`](deploy/docker-compose.prod.yml)):
+automatic HTTPS via Caddy for the dashboard, API and citizen portal, backups,
+the reporter-anonymity checklist, and building the Android app.
 
-| Setting | Why |
-|---|---|
-| `SECRET_KEY` | Strong, unique value (32+ bytes; it also signs JWTs). |
-| `ALLOWED_HOSTS` | Production hostnames. |
-| `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` | Must include **both** the staff dashboard and the citizen portal origins. |
-| `NUM_PROXIES` | Reverse proxies in front of Django (usually `1`). It decides which `X-Forwarded-For` hop is the real client. Too low and every citizen shares the proxy's IP (breaking rate limits and distinct-reporter counts); too high and clients can spoof their address. |
-
-The Django port must only be reachable through that proxy when `NUM_PROXIES` > 0.
-
-### Citizen portal
-
-Build it with the public API URL baked in, and give nginx the API origin for its Content-Security-Policy:
-
-```bash
-export CITIZEN_PORTAL_API_BASE_URL=https://api.example.gov/api/public   # baked into the bundle
-export CITIZEN_PORTAL_API_ORIGIN=https://api.example.gov                # CSP connect-src
-docker compose up -d --build citizen-portal
-```
-
-### Reporter anonymity checklist
-
-The portal promises that a reporter's IP is not saved with their report. The app keeps that promise
-(only a keyed hash is stored, gunicorn has no access log, the portal's nginx logs nothing). Your
-infrastructure must too:
-
-- [ ] The reverse proxy / load balancer in front of the API does **not** log client IPs for `/api/public/`
-      (e.g. `access_log off;` in that nginx `location`, or IP-anonymised logs).
-- [ ] No CDN, analytics or monitoring script is added to the citizen portal (its CSP blocks third parties by default).
-- [ ] `media/citizen_reports/` is backed up and access-controlled like other evidence.
+Production settings (`config.settings.prod`) refuse to start without `SECRET_KEY`,
+`ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`/`CSRF_TRUSTED_ORIGINS` (both the dashboard
+and portal origins) and `NUM_PROXIES`. The runbook explains each one.
 
 ---
 

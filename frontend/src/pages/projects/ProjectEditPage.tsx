@@ -30,7 +30,7 @@ export function ProjectEditPage() {
       await updateProject.mutateAsync({ projectId, payload });
       navigate(`/projects/${projectId}`);
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, "InfraTrack could not update the project right now."));
+      setSubmitError(getApiErrorMessage(error, "BuildWitness could not update the project right now."));
     }
   }
 
@@ -52,7 +52,7 @@ export function ProjectEditPage() {
         <QueryStateCard
           state="error"
           title="Project unavailable"
-          description="InfraTrack could not load this project for editing right now."
+          description="BuildWitness could not load this project for editing right now."
         />
       </PageShell>
     );

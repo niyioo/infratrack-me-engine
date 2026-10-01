@@ -31,7 +31,7 @@ export function CameraPermissionGate({ children }: { children: ReactNode }) {
       <AppAlert
         tone="info"
         title="Checking camera access"
-        message="InfraTrack is verifying whether this device is allowed to open the camera for evidence capture."
+        message="BuildWitness is verifying whether this device is allowed to open the camera for evidence capture."
       />
     );
   }

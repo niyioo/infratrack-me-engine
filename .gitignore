@@ -16,6 +16,7 @@ desktop.ini
 .env.*
 # The template is meant to be shared (the README says to copy it).
 !.env.example
+!.env.prod.example
 *.log
 
 # =========================

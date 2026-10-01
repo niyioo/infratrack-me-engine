@@ -13,7 +13,7 @@ import { useOfflineQueueSummary } from "@/features/sync/hooks";
 import { colors, radius, spacing, typography } from "@/lib/theme/tokens";
 
 function initials(fullName?: string) {
-  return (fullName || "InfraTrack User")
+  return (fullName || "BuildWitness User")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -47,7 +47,7 @@ export function ProfileScreen() {
           <Text style={styles.avatarText}>{initials(user?.full_name)}</Text>
         </View>
         <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>{user?.full_name || "InfraTrack User"}</Text>
+          <Text style={styles.heroTitle}>{user?.full_name || "BuildWitness User"}</Text>
           <Text style={styles.heroSubtitle}>{user?.email || "No email available"}</Text>
         </View>
       </View>

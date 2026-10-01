@@ -179,7 +179,7 @@ export function UsersPage() {
       setFormError(
         getApiErrorMessage(
           error,
-          editorMode === "create" ? "InfraTrack could not create this user right now." : "InfraTrack could not update this user right now."
+          editorMode === "create" ? "BuildWitness could not create this user right now." : "BuildWitness could not update this user right now."
         )
       );
     }
@@ -196,7 +196,7 @@ export function UsersPage() {
       setUserPendingDelete(null);
     } catch (error) {
       setFeedback({
-        message: getApiErrorMessage(error, "InfraTrack could not delete this user right now."),
+        message: getApiErrorMessage(error, "BuildWitness could not delete this user right now."),
         variant: "error"
       });
     }
@@ -220,7 +220,7 @@ export function UsersPage() {
         <QueryStateCard
           state="error"
           title="Users unavailable"
-          description="InfraTrack could not load the user directory right now."
+          description="BuildWitness could not load the user directory right now."
         />
       </PageShell>
     );
@@ -257,7 +257,7 @@ export function UsersPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-900">User Directory</h2>
-            <p className="mt-1 text-sm text-slate-500">Search and manage the accounts that can access InfraTrack.</p>
+            <p className="mt-1 text-sm text-slate-500">Search and manage the accounts that can access BuildWitness.</p>
           </div>
           <div className="w-full md:max-w-sm">
             <Input placeholder="Search by name, email, phone, or role" value={search} onChange={(event) => setSearch(event.target.value)} />

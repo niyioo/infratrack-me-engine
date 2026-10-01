@@ -26,7 +26,7 @@ export function setupInterceptors(client: AxiosInstance, baseURL: string) {
           });
 
           window.localStorage.setItem("access_token", response.data.access);
-          window.dispatchEvent(new Event("infratrack-auth-changed"));
+          window.dispatchEvent(new Event("buildwitness-auth-changed"));
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return client(originalRequest);
         } catch {

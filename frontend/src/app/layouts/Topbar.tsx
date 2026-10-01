@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { InfraTrackLogo } from "@/components/brand/InfraTrackLogo";
+import { BuildWitnessLogo } from "@/components/brand/BuildWitnessLogo";
 import { clearAuthStorage } from "@/features/auth/store";
 import { useAuth } from "@/features/auth/hooks";
 import {
@@ -26,7 +26,7 @@ export function Topbar() {
   return (
     <header className="flex items-center justify-between border-b border-brand/10 bg-white/95 px-6 py-4 backdrop-blur">
       <div className="flex items-center gap-4">
-        <InfraTrackLogo showWordmark={false} size={32} />
+        <BuildWitnessLogo showWordmark={false} size={32} />
         <div>
           <h2 className="text-base font-semibold text-slate-900">Operations Dashboard</h2>
           <p className="text-sm text-slate-500">Geo-verified project monitoring and funding control</p>

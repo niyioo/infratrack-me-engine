@@ -50,3 +50,17 @@ def test_directory_manager_can_list_users(db):
 
     assert response.status_code == 200
     assert len(response.data) >= 1
+
+
+def test_setup_roles_creates_only_roles_and_is_repeatable(db):
+    from django.core.management import call_command
+
+    from apps.accounts.models import Role, User
+    from apps.accounts.roles import SYSTEM_ROLES
+
+    call_command("setup_roles")
+    call_command("setup_roles")
+
+    assert set(Role.objects.values_list("code", flat=True)) >= {code for code, _ in SYSTEM_ROLES}
+    assert Role.objects.count() == len(SYSTEM_ROLES)
+    assert not User.objects.exists()

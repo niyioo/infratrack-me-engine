@@ -67,7 +67,7 @@ export function ProjectsPage() {
       setProjectPendingDelete(null);
     } catch (error) {
       setFeedback({
-        message: getApiErrorMessage(error, "InfraTrack could not delete this project right now."),
+        message: getApiErrorMessage(error, "BuildWitness could not delete this project right now."),
         variant: "error"
       });
     }

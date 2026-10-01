@@ -1,0 +1,22 @@
+# Staff dashboard build + Caddy reverse proxy (HTTPS for all three domains).
+FROM node:20-alpine AS dashboard
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+# Vite inlines VITE_* at build time, so these are build arguments.
+ARG VITE_API_BASE_URL
+ARG VITE_CARTO_BASEMAP_KEY=
+ARG VITE_CARTO_BASEMAP_STYLE=voyager
+ARG VITE_MAP_TILE_URL=
+ARG VITE_MAP_TILE_ATTRIBUTION=
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_CARTO_BASEMAP_KEY=$VITE_CARTO_BASEMAP_KEY \
+    VITE_CARTO_BASEMAP_STYLE=$VITE_CARTO_BASEMAP_STYLE \
+    VITE_MAP_TILE_URL=$VITE_MAP_TILE_URL \
+    VITE_MAP_TILE_ATTRIBUTION=$VITE_MAP_TILE_ATTRIBUTION
+RUN npx vite build
+
+FROM caddy:2-alpine
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=dashboard /app/dist /srv/dashboard

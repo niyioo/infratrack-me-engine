@@ -1,7 +1,7 @@
 import type { User } from "./types";
 
-const AUTH_USER_KEY = "infratrack_user";
-const AUTH_EVENT_NAME = "infratrack-auth-changed";
+const AUTH_USER_KEY = "buildwitness_user";
+const AUTH_EVENT_NAME = "buildwitness-auth-changed";
 type AuthSnapshot = {
   user: User | null;
   accessToken: string | null;

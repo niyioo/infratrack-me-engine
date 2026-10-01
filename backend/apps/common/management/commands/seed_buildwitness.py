@@ -4,7 +4,8 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point
 from django.utils import timezone
-from apps.accounts.models import Role, User, UserRole
+from apps.accounts.models import User, UserRole
+from apps.accounts.roles import ensure_system_roles
 from apps.organizations.models import Agency, Contractor
 from apps.projects.models import Project, ProjectAssignment
 from apps.milestones.models import ProjectMilestone, MilestoneChecklistItem
@@ -16,23 +17,11 @@ from apps.qa.models import FraudFlag
 
 
 class Command(BaseCommand):
-    help = "Seed InfraTrack development data"
+    help = "Seed BuildWitness development data"
 
     def handle(self, *args, **options):
         today = timezone.localdate()
-        role_codes = [
-            ("SUPER_ADMIN", "Super Admin"),
-            ("PROGRAM_DIRECTOR", "Program Director"),
-            ("M_E_OFFICER", "M&E Officer"),
-            ("FIELD_OFFICER", "Field Officer"),
-            ("CONTRACTOR", "Contractor"),
-            ("QA_OFFICER", "QA Officer"),
-            ("FINANCE_OFFICER", "Finance Officer"),
-            ("AUDITOR", "Auditor"),
-        ]
-        roles = {}
-        for code, name in role_codes:
-            roles[code], _ = Role.objects.get_or_create(code=code, defaults={"name": name})
+        roles = ensure_system_roles()
 
         agency, _ = Agency.objects.get_or_create(
             code="FMW-OND",
@@ -44,28 +33,28 @@ class Command(BaseCommand):
         )
 
         admin_user, _ = User.objects.get_or_create(
-            email="admin@infratrack.local",
+            email="admin@buildwitness.local",
             defaults={"first_name": "System", "last_name": "Admin", "is_staff": True, "is_superuser": True}
         )
         admin_user.set_password("Password123!")
         admin_user.save()
 
         qa_user, _ = User.objects.get_or_create(
-            email="qa@infratrack.local",
+            email="qa@buildwitness.local",
             defaults={"first_name": "QA", "last_name": "Officer"}
         )
         qa_user.set_password("Password123!")
         qa_user.save()
 
         finance_user, _ = User.objects.get_or_create(
-            email="finance@infratrack.local",
+            email="finance@buildwitness.local",
             defaults={"first_name": "Finance", "last_name": "Officer"}
         )
         finance_user.set_password("Password123!")
         finance_user.save()
 
         field_user, _ = User.objects.get_or_create(
-            email="field@infratrack.local",
+            email="field@buildwitness.local",
             defaults={"first_name": "Field", "last_name": "Officer"}
         )
         field_user.set_password("Password123!")
@@ -147,7 +136,7 @@ class Command(BaseCommand):
         for seeded in Project.objects.all():
             ProjectService.sync_operational_status(seeded, user=admin_user, reason="Seed data.")
 
-        self.stdout.write(self.style.SUCCESS("InfraTrack seed data created successfully."))
+        self.stdout.write(self.style.SUCCESS("BuildWitness seed data created successfully."))
 
     def _seed_portfolio(self, *, today, agency, contractor, admin_user, assignees):
         """A spread of projects in different states, so the map and exports have content."""

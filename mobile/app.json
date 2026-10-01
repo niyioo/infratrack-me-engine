@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "InfraTrack",
-    "slug": "infratrack-mobile",
-    "scheme": "infratrack",
+    "name": "BuildWitness",
+    "slug": "buildwitness-mobile",
+    "scheme": "buildwitness",
     "version": "1.0.0",
     "icon": "./assets/app-icon.png",
     "newArchEnabled": true,
@@ -12,7 +12,7 @@
       "**/*"
     ],
     "android": {
-      "package": "com.infratrack.mobile",
+      "package": "com.buildwitness.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -20,13 +20,15 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "CAMERA"
-      ]
+      ],
+      "versionCode": 1
     },
     "ios": {
-      "bundleIdentifier": "com.infratrack.mobile",
+      "bundleIdentifier": "com.buildwitness.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "InfraTrack uses the camera for live evidence capture.",
-        "NSLocationWhenInUseUsageDescription": "InfraTrack uses location to verify field evidence."
+        "NSCameraUsageDescription": "BuildWitness uses the camera for live evidence capture.",
+        "NSLocationWhenInUseUsageDescription": "BuildWitness uses location to verify field evidence.",
+        "NSPhotoLibraryUsageDescription": "BuildWitness lets citizens attach an existing photo to an anonymous report."
       }
     },
     "plugins": [
@@ -35,7 +37,8 @@
       "expo-location",
       "expo-camera",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "./plugins/withAndroidRelease"
     ],
     "experiments": {
       "typedRoutes": true
