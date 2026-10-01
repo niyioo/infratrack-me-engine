@@ -2,9 +2,9 @@ import * as SecureStore from "expo-secure-store";
 import type { User } from "./types";
 import { queryClient } from "@/lib/queryClient";
 
-const ACCESS_TOKEN_KEY = "buildwitness_access_token";
-const REFRESH_TOKEN_KEY = "buildwitness_refresh_token";
-const USER_KEY = "buildwitness_user";
+const ACCESS_TOKEN_KEY = "civitness_access_token";
+const REFRESH_TOKEN_KEY = "civitness_refresh_token";
+const USER_KEY = "civitness_user";
 
 // Keys used before the app was renamed: moved across on first read so an update
 // doesn't sign everyone out.

@@ -1,8 +1,12 @@
-# BuildWitness M&E Engine
+# Civitness
+
+**Citizen Reporting & Infrastructure Accountability Platform**
+
+*Every citizen can be a witness. Every report deserves action.*
 
 [![CI](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml)
 
-A project monitoring, evaluation, and disbursement control platform that ties financial releases to geo-verified physical milestones.
+Civitness lets citizens report on public infrastructure projects anonymously, and gives government teams the tools to verify field evidence, act on those reports and tie every payment to geo-verified progress.
 
 > **No verified milestone → No QA approval → No disbursement**
 
@@ -10,7 +14,7 @@ A project monitoring, evaluation, and disbursement control platform that ties fi
 
 ## What It Does
 
-BuildWitness replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
+Civitness replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
 
 Built for ministries, donor-funded programs, public works teams, and institutional oversight units.
 
@@ -46,7 +50,7 @@ python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate o
 pip install -r requirements.txt
 # Configure backend/.env (see README details)
 python manage.py migrate
-python manage.py seed_buildwitness
+python manage.py seed_civitness
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -108,10 +112,10 @@ Set `NUM_PROXIES` correctly in production, or every citizen will appear to share
 
 | Role | Email |
 |---|---|
-| Admin | `admin@buildwitness.local` |
-| Field Officer | `field@buildwitness.local` |
-| QA Reviewer | `qa@buildwitness.local` |
-| Finance | `finance@buildwitness.local` |
+| Admin | `admin@civitness.local` |
+| Field Officer | `field@civitness.local` |
+| QA Reviewer | `qa@civitness.local` |
+| Finance | `finance@civitness.local` |
 
 **Password:** `Password123!`
 

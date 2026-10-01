@@ -220,7 +220,7 @@ def render_project_report_pdf(data, *, generated_by, generated_at):
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(muted)
-        canvas.drawString(15 * mm, 10 * mm, f"BuildWitness · {project['code']} · Fingerprint {fingerprint[:16]}…")
+        canvas.drawString(15 * mm, 10 * mm, f"Civitness · {project['code']} · Fingerprint {fingerprint[:16]}…")
         canvas.drawRightString(A4[0] - 15 * mm, 10 * mm, f"Page {doc.page}")
         canvas.setStrokeColor(accent)
         canvas.setLineWidth(2)
@@ -232,7 +232,7 @@ def render_project_report_pdf(data, *, generated_by, generated_at):
     evidence = data["evidence"]
 
     story = [
-        Paragraph("PROJECT MONITORING REPORT", ParagraphStyle("eyebrow", parent=small, textColor=accent, fontName="Helvetica-Bold")),
+        Paragraph("CIVITNESS · PROJECT MONITORING REPORT", ParagraphStyle("eyebrow", parent=small, textColor=accent, fontName="Helvetica-Bold")),
         Paragraph(f"{project['title']}", h1),
         Paragraph(f"{project['code']} · {project['lga']}, {project['state']}", body),
         Spacer(1, 4),
@@ -336,7 +336,7 @@ def render_project_report_pdf(data, *, generated_by, generated_at):
         topMargin=18 * mm,
         bottomMargin=18 * mm,
         title=f"{project['code']} project report",
-        author="BuildWitness",
+        author="Civitness",
     )
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return buffer.getvalue(), fingerprint

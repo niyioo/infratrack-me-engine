@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BuildWitnessBrand } from "@/components/brand/BuildWitnessBrand";
+import { CivitnessBrand } from "@/components/brand/CivitnessBrand";
 import { colors, radius } from "@/lib/theme/tokens";
 
 function TabIcon({
@@ -64,7 +64,7 @@ export default function MainLayout() {
           headerStyle: {
             backgroundColor: colors.white,
           },
-          headerTitle: () => <BuildWitnessBrand size="sm" />,
+          headerTitle: () => <CivitnessBrand size="sm" />,
           headerShadowVisible: false,
           headerTintColor: colors.ink,
         }}

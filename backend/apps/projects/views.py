@@ -179,7 +179,7 @@ class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
             request=request,
         )
         response = HttpResponse(CSV_BOM + body, content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="buildwitness-projects-{generated_at:%Y%m%d-%H%M}.csv"'
+        response["Content-Disposition"] = f'attachment; filename="civitness-projects-{generated_at:%Y%m%d-%H%M}.csv"'
         return response
 
     def perform_create(self, serializer):

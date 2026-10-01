@@ -1,4 +1,4 @@
-type BuildWitnessLogoProps = {
+type CivitnessLogoProps = {
   className?: string;
   showWordmark?: boolean;
   size?: number;
@@ -30,11 +30,11 @@ function SymbolMark({ size = 44 }: { size?: number }) {
   );
 }
 
-export function BuildWitnessLogo({
+export function CivitnessLogo({
   className = "",
   showWordmark = true,
   size = 44,
-}: BuildWitnessLogoProps) {
+}: CivitnessLogoProps) {
   if (!showWordmark) {
     return <SymbolMark size={size} />;
   }
@@ -43,8 +43,8 @@ export function BuildWitnessLogo({
     <div className={`inline-flex items-center gap-3 ${className}`}>
       <SymbolMark size={size} />
       <div className="text-[1.6rem] font-extrabold leading-none tracking-[-0.05em]">
-        <span style={{ color: "#0F3D78" }}>Build</span>
-        <span style={{ color: "#0F9C92" }}>Witness</span>
+        <span style={{ color: "#0F3D78" }}>Civi</span>
+        <span style={{ color: "#0F9C92" }}>tness</span>
       </div>
     </div>
   );

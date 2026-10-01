@@ -1,5 +1,6 @@
-// Encodes captured frames into a WebM inside Edge (MediaRecorder), no ffmpeg.
-// Usage: node encode.js <framesDir> <output.webm>
+// Encodes captured frames into a video inside Edge (MediaRecorder), no ffmpeg.
+// Usage: node encode.js <framesDir> <output.mp4|output.webm>
+// .mp4 gives H.264 (plays everywhere: WhatsApp, PowerPoint, phones); .webm gives VP9.
 const { chromium } = require("playwright-core");
 const http = require("http");
 const fs = require("fs");
@@ -18,8 +19,13 @@ async function run(width, height) {
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext("2d");
   const stream = canvas.captureStream(30);
-  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm;codecs=vp8";
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5_000_000 });
+  const wantMp4 = location.hash === "#mp4";
+  const candidates = wantMp4
+    ? ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1.42E01E", "video/mp4"]
+    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8"];
+  const mime = candidates.find((t) => MediaRecorder.isTypeSupported(t));
+  if (!mime) throw new Error("this browser can't record " + (wantMp4 ? "MP4" : "WebM"));
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
   let uploads = Promise.resolve();
   rec.ondataavailable = (e) => { if (e.data.size) { const blob = e.data; uploads = uploads.then(() => fetch("/chunk", { method: "POST", body: blob })); } };
   const load = (i) => { const img = new Image(); img.src = "/" + index[i].file; return img.decode().then(() => img); };
@@ -72,7 +78,7 @@ async function run(width, height) {
 
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   const page = await browser.newPage();
-  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.goto(`http://127.0.0.1:${port}/${outFile.toLowerCase().endsWith(".mp4") ? "#mp4" : ""}`);
   const mime = await page.evaluate(([ww, hh]) => run(ww, hh), [w, h]);
   await finished;
   await browser.close();

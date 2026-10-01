@@ -23,6 +23,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { PressableSurface } from "@/components/ui/PressableSurface";
 import {
   citizenErrorMessage,
+  newReportKey,
   searchPublicProjects,
   submitCitizenReport,
   type PublicProject,
@@ -80,6 +81,8 @@ export default function CitizenReportScreen() {
   const [locationError, setLocationError] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  // One key per report: resubmitting after an error can't create a duplicate.
+  const [reportKey] = useState(newReportKey);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ReportStatus | null>(null);
 
@@ -158,6 +161,7 @@ export default function CitizenReportScreen() {
     setError("");
     const form = new FormData();
     form.append("project_id", String(project.id));
+    form.append("client_key", reportKey);
     form.append("category", category);
     form.append("description", description.trim());
     const observed = when != null ? WHEN_OPTIONS[when].value() : null;
@@ -399,7 +403,7 @@ export default function CitizenReportScreen() {
               title="Share code"
               variant="secondary"
               onPress={() =>
-                Share.share({ message: `BuildWitness report ${result.tracking_code} — ${result.project_title}` })
+                Share.share({ message: `Civitness report ${result.tracking_code} — ${result.project_title}` })
               }
             />
             <AppButton

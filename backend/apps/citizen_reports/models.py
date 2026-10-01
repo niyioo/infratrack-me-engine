@@ -56,6 +56,10 @@ class CitizenReport(models.Model):
     # Keyed hash of the client IP. Used only to count distinct reporters and rate-limit;
     # never exposed through any API, and not reversible without SECRET_KEY.
     reporter_fingerprint = models.CharField(max_length=64, db_index=True, editable=False)
+    # Random key the client generates once per report form, so a retry after a lost
+    # response returns this report instead of creating a duplicate. Not linked to
+    # the reporter in any way.
+    client_key = models.CharField(max_length=64, blank=True, default="", editable=False)
     triaged_by = models.ForeignKey(
         "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="triaged_citizen_reports"
     )
@@ -71,6 +75,13 @@ class CitizenReport(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["project", "created_at"], name="citizen_report_proj_created")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client_key"],
+                condition=~models.Q(client_key=""),
+                name="citizen_report_unique_client_key",
+            )
+        ]
 
     def __str__(self):
         return f"{self.tracking_code} ({self.get_category_display()})"

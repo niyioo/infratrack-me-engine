@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks";
 import { version as appVersion } from "../../../package.json";
-import { BuildWitnessLogo } from "@/components/brand/BuildWitnessLogo";
+import { CivitnessLogo } from "@/components/brand/CivitnessLogo";
 import {
   ANALYTICS_ACCESS_CAPABILITIES,
   AUDIT_ACCESS_CAPABILITIES,
@@ -119,8 +119,8 @@ export function Sidebar() {
     <aside className="hidden w-64 flex-col border-r border-brand/10 bg-white/95 backdrop-blur lg:flex">
       {/* Logo + workspace */}
       <div className="border-b border-brand/10 px-5 py-5">
-        <BuildWitnessLogo className="mb-1" />
-        <p className="mt-1 text-xs text-slate-400">M&E Control Console</p>
+        <CivitnessLogo className="mb-1" />
+        <p className="mt-1 text-xs text-slate-400">Infrastructure Accountability</p>
 
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -167,7 +167,7 @@ export function Sidebar() {
       {/* Footer spacer */}
       <div className="border-t border-slate-100 px-4 py-3">
         <p className="text-[10px] text-slate-400">
-          BuildWitness M&E Engine · v{appVersion}
+          Civitness · v{appVersion}
         </p>
       </div>
     </aside>

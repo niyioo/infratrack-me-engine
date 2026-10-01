@@ -52,6 +52,8 @@ class PublicCitizenReportCreateSerializer(serializers.Serializer):
     latitude = serializers.FloatField(required=False, allow_null=True, min_value=-90, max_value=90)
     longitude = serializers.FloatField(required=False, allow_null=True, min_value=-180, max_value=180)
     photo = serializers.FileField(required=False, allow_null=True)
+    # Idempotency key: 16–64 URL-safe characters, generated per report form.
+    client_key = serializers.RegexField(r"^[A-Za-z0-9_-]{16,64}$", required=False, allow_blank=True)
     # Honeypot: hidden in the UI, so only bots fill it in.
     website = serializers.CharField(required=False, allow_blank=True)
 

@@ -71,8 +71,33 @@ export function getProject(id: string | number) {
   return request<PublicProject>(`/projects/${id}/`);
 }
 
-export function submitReport(form: FormData) {
-  return request<ReportStatus>("/citizen-reports/", { method: "POST", body: form });
+/** Random key for one report form; lets a retried submit return the same report. */
+export function newReportKey() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+const RETRY_DELAYS_MS = [1500, 4000];
+
+/**
+ * Submits a report. If the connection drops (the report may have arrived even
+ * though the reply didn't), it retries with the same client_key, which the
+ * server answers with the original report instead of a duplicate.
+ */
+export async function submitReport(form: FormData) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await request<ReportStatus>("/citizen-reports/", { method: "POST", body: form });
+    } catch (error) {
+      const networkFailure = !(error instanceof ApiError);
+      if (!networkFailure || attempt >= RETRY_DELAYS_MS.length) {
+        if (networkFailure) throw new ApiError("Couldn't reach the server. Check your connection and try again.", 0);
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+    }
+  }
 }
 
 export function trackReport(code: string) {

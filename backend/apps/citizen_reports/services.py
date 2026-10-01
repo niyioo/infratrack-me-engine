@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -79,6 +79,13 @@ class CitizenReportService:
     @staticmethod
     @transaction.atomic
     def create_report(*, project, data, photo, fingerprint):
+        """Returns (report, created). A repeated client_key returns the original report."""
+        client_key = data.pop("client_key", "") or ""
+        if client_key:
+            existing = CitizenReport.objects.filter(client_key=client_key).first()
+            if existing:
+                return existing, False
+
         daily_limit = _setting("CITIZEN_REPORT_DAILY_LIMIT_PER_PROJECT", 3)
         recent_same_source = CitizenReport.objects.filter(
             project=project,
@@ -90,13 +97,23 @@ class CitizenReportService:
                 "You have already sent several reports about this project today. Thank you. We will review them."
             )
 
-        report = CitizenReport.objects.create(
-            tracking_code=CitizenReportService.generate_tracking_code(),
-            project=project,
-            reporter_fingerprint=fingerprint,
-            photo=CitizenReportService.sanitize_photo(photo) if photo else None,
-            **data,
-        )
+        try:
+            with transaction.atomic():
+                report = CitizenReport.objects.create(
+                    tracking_code=CitizenReportService.generate_tracking_code(),
+                    project=project,
+                    reporter_fingerprint=fingerprint,
+                    client_key=client_key,
+                    photo=CitizenReportService.sanitize_photo(photo) if photo else None,
+                    **data,
+                )
+        except IntegrityError:
+            # Two copies of the same retry raced; the other one won.
+            if client_key:
+                existing = CitizenReport.objects.filter(client_key=client_key).first()
+                if existing:
+                    return existing, False
+            raise
         AuditService.log_event(
             event_type="CITIZEN_REPORT_RECEIVED",
             actor=None,
@@ -107,7 +124,7 @@ class CitizenReportService:
             after_state={"tracking_code": report.tracking_code, "category": report.category},
         )
         CitizenReportService.evaluate_volume(project)
-        return report
+        return report, True
 
     @staticmethod
     def distinct_concern_reporters(project):

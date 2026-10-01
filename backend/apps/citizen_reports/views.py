@@ -86,7 +86,7 @@ class PublicCitizenReportCreateView(PublicEndpointMixin, generics.CreateAPIView)
         )
 
         try:
-            report = CitizenReportService.create_report(
+            report, created = CitizenReportService.create_report(
                 project=project,
                 data=data,
                 photo=photo,
@@ -95,7 +95,10 @@ class PublicCitizenReportCreateView(PublicEndpointMixin, generics.CreateAPIView)
         except CitizenReportError as exc:
             raise ValidationError({"detail": str(exc)})
 
-        return Response(PublicCitizenReportStatusSerializer(report).data, status=status.HTTP_201_CREATED)
+        return Response(
+            PublicCitizenReportStatusSerializer(report).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class PublicCitizenReportTrackView(PublicEndpointMixin, generics.RetrieveAPIView):

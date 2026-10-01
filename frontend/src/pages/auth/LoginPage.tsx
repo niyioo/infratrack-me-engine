@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { BuildWitnessLogo } from "@/components/brand/BuildWitnessLogo";
+import { CivitnessLogo } from "@/components/brand/CivitnessLogo";
 import { Card } from "@/components/ui/Card";
 import { fetchCurrentUser, login } from "@/features/auth/api";
 import type { User } from "@/features/auth/types";
@@ -58,7 +58,7 @@ export function LoginPage() {
     <Card className="w-full border-brand/10 bg-white/95 p-8 backdrop-blur">
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-4">
-          <BuildWitnessLogo size={42} />
+          <CivitnessLogo size={42} />
           <div
             className="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
             style={{

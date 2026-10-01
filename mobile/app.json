@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "BuildWitness",
-    "slug": "buildwitness-mobile",
-    "scheme": "buildwitness",
+    "name": "Civitness",
+    "slug": "civitness-mobile",
+    "scheme": "civitness",
     "version": "1.0.0",
     "icon": "./assets/app-icon.png",
     "newArchEnabled": true,
@@ -12,7 +12,7 @@
       "**/*"
     ],
     "android": {
-      "package": "com.buildwitness.app",
+      "package": "com.civitness.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -24,11 +24,11 @@
       "versionCode": 1
     },
     "ios": {
-      "bundleIdentifier": "com.buildwitness.app",
+      "bundleIdentifier": "com.civitness.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "BuildWitness uses the camera for live evidence capture.",
-        "NSLocationWhenInUseUsageDescription": "BuildWitness uses location to verify field evidence.",
-        "NSPhotoLibraryUsageDescription": "BuildWitness lets citizens attach an existing photo to an anonymous report."
+        "NSCameraUsageDescription": "Civitness uses the camera for live evidence capture.",
+        "NSLocationWhenInUseUsageDescription": "Civitness uses location to verify field evidence.",
+        "NSPhotoLibraryUsageDescription": "Civitness lets citizens attach an existing photo to an anonymous report."
       }
     },
     "plugins": [

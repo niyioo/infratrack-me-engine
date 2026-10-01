@@ -242,3 +242,31 @@ def test_dashboard_and_project_detail_expose_citizen_signals_to_triage_roles_onl
         client.force_authenticate(user=user)
         assert client.get("/api/project-metric-snapshots/dashboard-summary/").data["citizen_reports"] is None
         assert client.get(f"/api/projects/{project.id}/").data["citizen_reports"] is None
+
+
+def test_retry_with_same_client_key_returns_the_original_report(project):
+    key = "k" * 10 + "Zq7_-Lp2wX9mN4"
+    first = post_report(project, client_key=key)
+    # Mobile networks often change the phone's IP between attempts.
+    retry = post_report(project, ip="198.51.100.77", client_key=key)
+
+    assert first.status_code == 201
+    assert retry.status_code == 200
+    assert retry.data["tracking_code"] == first.data["tracking_code"]
+    assert CitizenReport.objects.filter(project=project).count() == 1
+
+
+def test_different_client_keys_create_separate_reports(project):
+    a = post_report(project, client_key="a" * 24)
+    b = post_report(project, client_key="b" * 24)
+
+    assert a.status_code == b.status_code == 201
+    assert a.data["tracking_code"] != b.data["tracking_code"]
+
+
+@pytest.mark.parametrize("bad_key", ["short", "has spaces in it ok", "x" * 65, "semi;colon-key-1234"])
+def test_malformed_client_key_is_rejected(project, bad_key):
+    response = post_report(project, client_key=bad_key)
+
+    assert response.status_code == 400
+    assert not CitizenReport.objects.exists()

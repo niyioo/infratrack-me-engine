@@ -175,7 +175,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_BYTES
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_BYTES
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "BuildWitness M&E Engine API",
+    "TITLE": "Civitness API: Citizen Reporting & Infrastructure Accountability Platform",
     "DESCRIPTION": "Geo-verified monitoring and tranche-gating API",
     "VERSION": "1.0.0",
 }

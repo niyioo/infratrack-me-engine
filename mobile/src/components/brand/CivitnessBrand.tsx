@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "@/lib/theme/tokens";
 
-type BuildWitnessBrandProps = {
+type CivitnessBrandProps = {
   size?: "sm" | "md" | "lg";
   showWordmark?: boolean;
   stacked?: boolean;
@@ -20,12 +20,12 @@ function fontSizeFor(size: "sm" | "md" | "lg") {
   return 24;
 }
 
-export function BuildWitnessBrand({
+export function CivitnessBrand({
   size = "md",
   showWordmark = true,
   stacked = false,
   light = false,
-}: BuildWitnessBrandProps) {
+}: CivitnessBrandProps) {
   const dimension = dimensionFor(size);
   const fontSize = fontSizeFor(size);
   const ink = light ? colors.white : "#0F3D78";
@@ -51,8 +51,8 @@ export function BuildWitnessBrand({
 
       {showWordmark ? (
         <View style={[styles.wordmarkRow, stacked && styles.wordmarkStacked]}>
-          <Text style={[styles.wordmark, { color: ink, fontSize }]}>Build</Text>
-          <Text style={[styles.wordmark, { color: teal, fontSize }]}>Witness</Text>
+          <Text style={[styles.wordmark, { color: ink, fontSize }]}>Civi</Text>
+          <Text style={[styles.wordmark, { color: teal, fontSize }]}>tness</Text>
         </View>
       ) : null}
     </View>

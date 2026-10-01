@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as Crypto from "expo-crypto";
 import { endpoints } from "@/services/api/endpoints";
 
 /**
@@ -43,7 +44,7 @@ type Paginated<T> = { count: number; next: string | null; results: T[] };
 /** Plain-language message for a failed public request. */
 export function citizenErrorMessage(error: unknown) {
   if (!axios.isAxiosError(error)) return "Something went wrong. Please try again.";
-  if (!error.response) return "Can't reach BuildWitness. Check your connection and try again.";
+  if (!error.response) return "Can't reach Civitness. Check your connection and try again.";
   const { status, data } = error.response;
   if (status === 429) return "Too many requests from your connection. Please wait a while and try again.";
   if (status === 404) return "We couldn't find that. Check the code and try again.";
@@ -62,11 +63,32 @@ export async function searchPublicProjects(search: string) {
   return Array.isArray(data) ? data : data.results;
 }
 
+/** Random key for one report form; lets a retried submit return the same report. */
+export function newReportKey() {
+  return Crypto.randomUUID().replace(/-/g, "");
+}
+
+const RETRY_DELAYS_MS = [1500, 4000];
+
+/**
+ * Submits a report. On a dropped connection (the report may have arrived even
+ * though the reply didn't, common on patchy mobile data) it retries with the
+ * same client_key, which the server answers with the original report instead
+ * of creating a duplicate.
+ */
 export async function submitCitizenReport(form: FormData) {
-  const { data } = await publicClient.post<ReportStatus>("/citizen-reports/", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return data;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const { data } = await publicClient.post<ReportStatus>("/citizen-reports/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data;
+    } catch (error) {
+      const networkFailure = axios.isAxiosError(error) && !error.response;
+      if (!networkFailure || attempt >= RETRY_DELAYS_MS.length) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+    }
+  }
 }
 
 export async function trackCitizenReport(code: string) {

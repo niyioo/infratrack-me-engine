@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { getProject, submitReport, type PublicProject, type ReportStatus } from "@/api";
+import { getProject, newReportKey, submitReport, type PublicProject, type ReportStatus } from "@/api";
 import { CATEGORIES } from "@/categories";
 import clsx from "@/lib/clsx";
 
@@ -48,6 +48,8 @@ export function ReportPage() {
   const [website, setWebsite] = useState(""); // honeypot
 
   const [submitting, setSubmitting] = useState(false);
+  // One key per report: resubmitting after an error can't create a duplicate.
+  const [reportKey] = useState(newReportKey);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ReportStatus | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -112,6 +114,7 @@ export function ReportPage() {
     }
     if (photo) form.append("photo", photo);
     form.append("website", website);
+    form.append("client_key", reportKey);
 
     try {
       setResult(await submitReport(form));

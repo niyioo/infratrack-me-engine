@@ -1,4 +1,4 @@
-# Deploying BuildWitness
+# Deploying Civitness
 
 This runbook takes a fresh Linux server to a running pilot: the staff dashboard,
 the API, the public citizen portal, and an Android build of the mobile app.
@@ -69,7 +69,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod \
   exec backend python manage.py createsuperuser
 ```
 
-Do **not** run `seed_buildwitness` in production. It creates demo projects and
+Do **not** run `seed_civitness` in production. It creates demo projects and
 demo users with a published password. The eight system roles are created
 automatically on every start (`setup_roles`).
 
@@ -143,17 +143,17 @@ Migrations run automatically when `backend` starts.
 **Backups.** Run these daily (cron) and copy the files off the server.
 ```bash
 # Database
-itc exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > buildwitness-$(date +%F).dump
+itc exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > civitness-$(date +%F).dump
 # Uploaded evidence and citizen photos
-docker run --rm -v buildwitness_media_data:/media -v "$PWD":/backup alpine \
-  tar czf /backup/buildwitness-media-$(date +%F).tgz -C /media .
+docker run --rm -v civitness_media_data:/media -v "$PWD":/backup alpine \
+  tar czf /backup/civitness-media-$(date +%F).tgz -C /media .
 ```
 
 **Restore**
 ```bash
-itc exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' < buildwitness-YYYY-MM-DD.dump
-docker run --rm -v buildwitness_media_data:/media -v "$PWD":/backup alpine \
-  sh -c 'cd /media && tar xzf /backup/buildwitness-media-YYYY-MM-DD.tgz'
+itc exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' < civitness-YYYY-MM-DD.dump
+docker run --rm -v civitness_media_data:/media -v "$PWD":/backup alpine \
+  sh -c 'cd /media && tar xzf /backup/civitness-media-YYYY-MM-DD.tgz'
 ```
 
 **Refresh health scores now** (they also refresh hourly):
@@ -171,15 +171,15 @@ Needs Node 20, JDK 17+ (Android Studio's bundled JBR is fine) and the Android SD
 1. **One-time: create the upload (signing) key.** Keep it outside the repo and
    **back it up**: without it you can never ship an update to installed copies.
    ```bash
-   keytool -genkeypair -v -storetype PKCS12 -keystore ~/.buildwitness/buildwitness-upload.jks \
-     -alias buildwitness-upload -keyalg RSA -keysize 2048 -validity 10000
+   keytool -genkeypair -v -storetype PKCS12 -keystore ~/.civitness/civitness-upload.jks \
+     -alias civitness-upload -keyalg RSA -keysize 2048 -validity 10000
    ```
    Then add to `~/.gradle/gradle.properties` (not the repo):
    ```properties
-   BUILDWITNESS_UPLOAD_STORE_FILE=/home/you/.buildwitness/buildwitness-upload.jks
-   BUILDWITNESS_UPLOAD_STORE_PASSWORD=...
-   BUILDWITNESS_UPLOAD_KEY_ALIAS=buildwitness-upload
-   BUILDWITNESS_UPLOAD_KEY_PASSWORD=...
+   CIVITNESS_UPLOAD_STORE_FILE=/home/you/.civitness/civitness-upload.jks
+   CIVITNESS_UPLOAD_STORE_PASSWORD=...
+   CIVITNESS_UPLOAD_KEY_ALIAS=civitness-upload
+   CIVITNESS_UPLOAD_KEY_PASSWORD=...
    ```
    Without these, release builds are signed with the shared debug key (fine for
    testing, not for distribution).
@@ -230,4 +230,4 @@ EAS can create and store the signing key for you.
 | Dashboard loads but every request fails | `VITE_API_BASE_URL`/`API_DOMAIN` wrong, or the dashboard origin is missing from `CORS_ALLOWED_ORIGINS`. Rebuild `web` after fixing domains. |
 | "API key required" tiles on the map | CARTO key missing, or restricted to another domain. |
 | Citizen reports all count as one reporter | `NUM_PROXIES` too low for the proxies actually in front. |
-| Mobile app: "Can't reach the BuildWitness server" | The APK was built for a different API URL, or the API isn't reachable over HTTPS from the phone. |
+| Mobile app: "Can't reach the Civitness server" | The APK was built for a different API URL, or the API isn't reachable over HTTPS from the phone. |

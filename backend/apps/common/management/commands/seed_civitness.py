@@ -17,7 +17,7 @@ from apps.qa.models import FraudFlag
 
 
 class Command(BaseCommand):
-    help = "Seed BuildWitness development data"
+    help = "Seed Civitness development data"
 
     def handle(self, *args, **options):
         today = timezone.localdate()
@@ -33,28 +33,28 @@ class Command(BaseCommand):
         )
 
         admin_user, _ = User.objects.get_or_create(
-            email="admin@buildwitness.local",
+            email="admin@civitness.local",
             defaults={"first_name": "System", "last_name": "Admin", "is_staff": True, "is_superuser": True}
         )
         admin_user.set_password("Password123!")
         admin_user.save()
 
         qa_user, _ = User.objects.get_or_create(
-            email="qa@buildwitness.local",
+            email="qa@civitness.local",
             defaults={"first_name": "QA", "last_name": "Officer"}
         )
         qa_user.set_password("Password123!")
         qa_user.save()
 
         finance_user, _ = User.objects.get_or_create(
-            email="finance@buildwitness.local",
+            email="finance@civitness.local",
             defaults={"first_name": "Finance", "last_name": "Officer"}
         )
         finance_user.set_password("Password123!")
         finance_user.save()
 
         field_user, _ = User.objects.get_or_create(
-            email="field@buildwitness.local",
+            email="field@civitness.local",
             defaults={"first_name": "Field", "last_name": "Officer"}
         )
         field_user.set_password("Password123!")
@@ -136,7 +136,7 @@ class Command(BaseCommand):
         for seeded in Project.objects.all():
             ProjectService.sync_operational_status(seeded, user=admin_user, reason="Seed data.")
 
-        self.stdout.write(self.style.SUCCESS("BuildWitness seed data created successfully."))
+        self.stdout.write(self.style.SUCCESS("Civitness seed data created successfully."))
 
     def _seed_portfolio(self, *, today, agency, contractor, admin_user, assignees):
         """A spread of projects in different states, so the map and exports have content."""
