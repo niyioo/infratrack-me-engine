@@ -12,10 +12,34 @@ import type { MapCitizenReport, MapProject } from "@/features/map/types";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
-const TILE_URL = import.meta.env.VITE_MAP_TILE_URL || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTRIBUTION =
-  import.meta.env.VITE_MAP_TILE_ATTRIBUTION ||
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+/**
+ * Tile source, in priority order:
+ * 1. VITE_MAP_TILE_URL: any tile server (self-hosted or another provider).
+ * 2. VITE_CARTO_BASEMAP_KEY: CARTO basemaps (free key from carto.com/basemaps/apikey,
+ *    commercial use free up to 1M tile requests a month). Style via
+ *    VITE_CARTO_BASEMAP_STYLE: voyager (default), light_all, dark_all.
+ * 3. OpenStreetMap's public servers: fine for local development only; their
+ *    usage policy doesn't allow production traffic.
+ */
+function tileSource() {
+  const env = import.meta.env;
+  if (env.VITE_MAP_TILE_URL) {
+    return { url: env.VITE_MAP_TILE_URL, attribution: env.VITE_MAP_TILE_ATTRIBUTION || OSM_ATTRIBUTION };
+  }
+  if (env.VITE_CARTO_BASEMAP_KEY) {
+    const style = env.VITE_CARTO_BASEMAP_STYLE || "voyager";
+    return {
+      // {r} becomes "@2x" on high-density screens, for sharp tiles.
+      url: `https://basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(env.VITE_CARTO_BASEMAP_KEY)}`,
+      attribution: `${OSM_ATTRIBUTION}, &copy; <a href="https://carto.com/attribution/">CARTO</a>`,
+    };
+  }
+  return { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: OSM_ATTRIBUTION };
+}
+
+const TILES = tileSource();
 
 type ColorMode = "health" | "status";
 
@@ -203,7 +227,7 @@ export function PortfolioMapPage() {
                 // Keep the map under the app's sticky header and drawers.
                 style={{ zIndex: 0 }}
               >
-                <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+                <TileLayer url={TILES.url} attribution={TILES.attribution} />
                 <FitToPoints points={points} />
                 <FlyTo target={focused} />
                 <KeepSized />

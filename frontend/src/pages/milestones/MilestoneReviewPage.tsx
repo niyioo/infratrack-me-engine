@@ -400,7 +400,8 @@ export function MilestoneReviewPage() {
                     <div className="border-b border-slate-100 bg-slate-50 px-5 py-3.5">
                       <p className="text-sm font-semibold text-slate-700">Checklist Scoring</p>
                       <p className="mt-0.5 text-xs text-slate-400">
-                        Score each item against the submitted evidence.
+                        Score each item against the submitted evidence. To approve, each required item and the
+                        overall score need at least {selectedMilestone.required_checklist_score}%.
                       </p>
                     </div>
                     <div className="divide-y divide-slate-50 px-5">
@@ -412,7 +413,11 @@ export function MilestoneReviewPage() {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-slate-800">{item.title}</p>
                             {item.is_required && (
-                              <p className="mt-0.5 text-xs text-slate-400">Required</p>
+                              <p className="mt-0.5 text-xs text-slate-400">
+                                Required · pass mark{" "}
+                                {Math.ceil((selectedMilestone.required_checklist_score * item.max_score) / 100) || 1}/
+                                {item.max_score}
+                              </p>
                             )}
                           </div>
                           <div className="flex shrink-0 items-center gap-2">

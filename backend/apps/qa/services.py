@@ -141,10 +141,17 @@ class QAService:
         failed_required_items = []
 
         score_map = {item["checklist_item_id"]: item for item in item_scores}
+        pass_mark = milestone.required_checklist_score
 
         for checklist_item in checklist_items:
             awarded = score_map.get(checklist_item.id, {}).get("score_awarded", 0)
-            passed = awarded >= checklist_item.max_score if checklist_item.is_required else awarded > 0
+            # A required item must reach the milestone's pass mark (e.g. 7/10 at 70%);
+            # optional items just need some credit. Zero never passes a required item,
+            # even if a milestone's pass mark is set to 0.
+            if checklist_item.is_required:
+                passed = awarded > 0 and awarded * 100 >= pass_mark * checklist_item.max_score
+            else:
+                passed = awarded > 0
             if checklist_item.is_required and not passed:
                 failed_required_items.append(checklist_item.title)
             QAReviewItem.objects.create(
@@ -160,7 +167,8 @@ class QAService:
         if decision == QAReviewDecision.APPROVED and checklist_items:
             if failed_required_items:
                 raise QAReviewError(
-                    "Cannot approve: required checklist items not met: " + ", ".join(failed_required_items)
+                    f"Cannot approve: required checklist items below the {pass_mark}% pass mark: "
+                    + ", ".join(failed_required_items)
                 )
             score_percent = (total_score / max_score * 100) if max_score else 100
             if score_percent < milestone.required_checklist_score:

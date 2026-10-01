@@ -21,6 +21,7 @@ from apps.finance.rules import TrancheEligibilityEngine
 from apps.milestones.models import MilestoneChecklistItem, ProjectMilestone
 from apps.organizations.models import Agency, Contractor
 from apps.projects.models import Project, ProjectAssignment
+from apps.projects.services import ProjectService
 from apps.qa.models import FraudFlag, QAReview
 
 
@@ -711,3 +712,63 @@ def test_milestone_api_reports_counted_evidence(db):
     assert response.status_code == 200
     rows = response.data["results"] if isinstance(response.data, dict) else response.data
     assert [row["submitted_evidence_count"] for row in rows] == [2]
+
+
+# ---------------------------------------------------------------------------
+# Checklist pass mark and status after disbursement
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("score, approved", [(7, True), (6, False), (0, False)])
+def test_required_checklist_item_passes_at_the_milestone_pass_mark(db, score, approved):
+    field_user, agency = make_user(f"field-mark-{score}@example.com", "FIELD_OFFICER")
+    qa_user, _ = make_user(f"qa-mark-{score}@example.com", "QA_OFFICER")
+    project = make_project(agency=agency, created_by=field_user, code=f"PRJ-MARK-{score}")
+    milestone = make_milestone(project, 1)
+    ProjectMilestone.objects.filter(pk=milestone.pk).update(required_checklist_score=70)
+    item = MilestoneChecklistItem.objects.create(
+        project_milestone=milestone, title="Footing complete", max_score=10, is_required=True
+    )
+    submission = make_submission(project, milestone, field_user)
+
+    client = APIClient()
+    client.force_authenticate(user=qa_user)
+    response = client.post(
+        "/api/qa-reviews/",
+        {
+            "evidence_submission_id": submission.id,
+            "decision": "APPROVED",
+            "item_scores": [{"checklist_item_id": item.id, "score_awarded": score}],
+            "comments": "Checked on site.",
+        },
+        format="json",
+    )
+
+    assert (response.status_code == 201) is approved
+    milestone.refresh_from_db()
+    assert (milestone.current_status == MilestoneStatus.APPROVED) is approved
+    if not approved:
+        assert "70% pass mark" in str(response.data)
+
+
+def test_disbursement_keeps_the_project_delivery_status(db):
+    user, agency = make_user("finance-status@example.com", "FINANCE_OFFICER")
+    field_user, _ = make_user("field-status@example.com", "FIELD_OFFICER")
+    project = make_project(agency=agency, created_by=user, code="PRJ-STAT-01")
+    approved = make_milestone(project, 1, status=MilestoneStatus.APPROVED)
+    make_milestone(project, 2, status=MilestoneStatus.OPEN_FOR_SUBMISSION)
+    make_submission(project, approved, field_user, status=SubmissionStatus.APPROVED)
+    tranche = make_tranche(project, 1, milestone=approved)
+    ProjectAssignment.objects.create(project=project, user=user, assignment_role="FINANCE_OFFICER")
+    ProjectService.sync_operational_status(project)
+    project.refresh_from_db()
+    assert project.current_status == "ACTIVE"
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.post(f"/api/tranches/{tranche.id}/disburse/", {"payment_reference": "REF-STAT-1"}, format="json")
+
+    assert response.status_code == 201
+    project.refresh_from_db()
+    assert project.current_status == "ACTIVE"
+    assert project.financial_disbursement_percent > 0

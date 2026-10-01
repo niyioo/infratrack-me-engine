@@ -2,7 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from apps.finance.models import FundingTranche, TrancheEligibilitySnapshot, Disbursement
 from apps.finance.rules import TrancheEligibilityEngine
-from apps.common.constants import TrancheStatus, ProjectStatus
+from apps.common.constants import TrancheStatus
 from apps.audits.services import AuditService
 from apps.projects.services import ProjectService
 
@@ -83,13 +83,16 @@ class FinanceService:
             "current_status", "actual_release_date", "released_by", "release_reference"
         ])
 
-        ProjectService.change_status(
+        # Paying a tranche doesn't change what stage the works are at, so the project
+        # keeps its delivery status (Active, Delayed, Completed…). Forcing it to
+        # APPROVED_FOR_FUNDING here froze it there, as that's a manual status the
+        # automatic sync never leaves. The release itself is the disbursement record
+        # and the TRANCHE_DISBURSED audit event below.
+        ProjectService.sync_operational_status(
             tranche.project,
-            ProjectStatus.APPROVED_FOR_FUNDING,
-            released_by_user,
-            reason=f"Tranche {tranche.tranche_number} disbursed."
+            user=released_by_user,
+            reason=f"Tranche {tranche.tranche_number} disbursed.",
         )
-        ProjectService.refresh_metrics(tranche.project)
 
         AuditService.log_event(
             event_type="TRANCHE_DISBURSED",
