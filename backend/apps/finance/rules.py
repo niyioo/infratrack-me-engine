@@ -24,13 +24,16 @@ class TrancheEligibilityEngine:
             else:
                 rules_failed.append("Linked milestone not approved.")
 
-            approved_submission_exists = milestone.submissions.filter(
-                submission_status=SubmissionStatus.APPROVED
-            ).exists()
-            if approved_submission_exists:
+            approved_submissions = milestone.submissions.filter(submission_status=SubmissionStatus.APPROVED)
+            if approved_submissions.exists():
                 rules_passed.append("Approved evidence submission exists.")
             else:
                 rules_failed.append("No approved evidence submission exists.")
+
+            if approved_submissions.filter(integrity_status="FLAGGED").exists():
+                rules_failed.append("Approved evidence has unresolved integrity flags.")
+            elif approved_submissions.exists():
+                rules_passed.append("Approved evidence passed integrity checks.")
 
             if milestone.requires_field_validation:
                 field_validation_exists = milestone.submissions.filter(
@@ -42,12 +45,14 @@ class TrancheEligibilityEngine:
                 else:
                     rules_failed.append("Independent field validation required but missing.")
 
-        previous_tranche = project.tranches.filter(tranche_number=tranche.tranche_number - 1).first()
-        if previous_tranche:
-            if previous_tranche.current_status == TrancheStatus.DISBURSED:
-                rules_passed.append("Previous tranche disbursed.")
-            else:
+        # Every earlier tranche must be released, not just the immediately preceding number,
+        # otherwise a gap in numbering lets a later tranche skip the queue.
+        earlier_tranches = project.tranches.filter(tranche_number__lt=tranche.tranche_number)
+        if earlier_tranches.exists():
+            if earlier_tranches.exclude(current_status=TrancheStatus.DISBURSED).exists():
                 rules_failed.append("Previous tranche not disbursed.")
+            else:
+                rules_passed.append("Previous tranche disbursed.")
 
         unresolved_fraud = project.fraud_flags.filter(status="OPEN").exists()
         if unresolved_fraud:

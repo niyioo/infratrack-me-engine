@@ -1,0 +1,129 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: infratrack
+      POSTGRES_USER: infra
+      POSTGRES_PASSWORD: infra1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infra -d infratrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: infratrack-me-engine-backend
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DEBUG: "True"
+      SECRET_KEY: unsafe-local-dev-secret-key
+      DB_NAME: infratrack
+      DB_USER: infra
+      DB_PASSWORD: infra1234
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
+      CORS_ALLOW_ALL_ORIGINS: "True"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 2 --reload config.wsgi:application"
+
+  celery:
+    # Same code as the backend: reuse its image instead of building copies.
+    image: infratrack-me-engine-backend
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DEBUG: "True"
+      SECRET_KEY: unsafe-local-dev-secret-key
+      DB_NAME: infratrack
+      DB_USER: infra
+      DB_PASSWORD: infra1234
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A config worker -l info
+
+  celery-beat:
+    # Same code as the backend: reuse its image instead of building copies.
+    image: infratrack-me-engine-backend
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DEBUG: "True"
+      SECRET_KEY: unsafe-local-dev-secret-key
+      DB_NAME: infratrack
+      DB_USER: infra
+      DB_PASSWORD: infra1234
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      # Blank overrides: backend/.env may hold Windows OSGeo4W paths for host runs.
+      GDAL_LIBRARY_PATH: ""
+      GEOS_LIBRARY_PATH: ""
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  citizen-portal:
+    # Public anonymous reporting site: static build served by nginx (no access logs).
+    build:
+      context: ./citizen-portal
+      args:
+        VITE_PUBLIC_API_BASE_URL: ${CITIZEN_PORTAL_API_BASE_URL:-http://localhost:8000/api/public}
+    environment:
+      PUBLIC_API_ORIGIN: ${CITIZEN_PORTAL_API_ORIGIN:-http://localhost:8000}
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  media_data:

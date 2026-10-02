@@ -19,6 +19,21 @@ class RiskStatus(models.TextChoices):
     CRITICAL = "CRITICAL", "Critical"
 
 
+class ProjectPriority(models.TextChoices):
+    LOW = "LOW", "Low"
+    MEDIUM = "MEDIUM", "Medium"
+    HIGH = "HIGH", "High"
+    CRITICAL = "CRITICAL", "Critical"
+
+
+class ReportingFrequency(models.TextChoices):
+    WEEKLY = "WEEKLY", "Weekly"
+    BIWEEKLY = "BIWEEKLY", "Bi-Weekly"
+    MONTHLY = "MONTHLY", "Monthly"
+    QUARTERLY = "QUARTERLY", "Quarterly"
+    AD_HOC = "AD_HOC", "Ad Hoc"
+
+
 class MilestoneStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     OPEN_FOR_SUBMISSION = "OPEN_FOR_SUBMISSION", "Open For Submission"

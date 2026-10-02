@@ -1,16 +1,27 @@
 import { ReactNode } from "react";
 import { View, StyleSheet } from "react-native";
+import { colors, radius, shadows } from "@/lib/theme/tokens";
 
-export function AppCard({ children }: { children: ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+export function AppCard({
+  children,
+  padded = true,
+}: {
+  children: ReactNode;
+  padded?: boolean;
+}) {
+  return <View style={[styles.card, !padded && styles.unpadded]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
     padding: 20,
+    ...shadows.soft,
+  },
+  unpadded: {
+    padding: 0,
   },
 });

@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks";
 
-export function useRoleAccess(requiredRoles: string[]) {
-  const { roles } = useAuth();
-  return requiredRoles.some((role) => roles.includes(role));
+export function useRoleAccess(requiredCapabilities: string[]) {
+  const { capabilities } = useAuth();
+  return requiredCapabilities.some((capability) => capabilities.includes(capability));
 }

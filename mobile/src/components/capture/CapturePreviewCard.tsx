@@ -12,7 +12,9 @@ export function CapturePreviewCard(props: {
       <Text style={styles.title}>Captured Evidence</Text>
       <Text style={styles.meta}>Captured at: {props.capturedAt}</Text>
       <Text style={styles.meta}>
-        GPS: {props.latitude.toFixed(6)}, {props.longitude.toFixed(6)}
+        {props.latitude !== undefined && props.longitude !== undefined
+          ? "Location metadata attached for verification"
+          : "Location metadata unavailable"}
       </Text>
     </View>
   );

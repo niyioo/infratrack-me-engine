@@ -7,7 +7,7 @@ type Props = {
 };
 
 export function RoleGuard({ allow, children }: Props) {
-  const { roles } = useAuth();
-  const allowed = allow.some((role) => roles.includes(role));
+  const { capabilities } = useAuth();
+  const allowed = allow.some((capability) => capabilities.includes(capability));
   return allowed ? <>{children}</> : <Navigate to="/dashboard" replace />;
 }

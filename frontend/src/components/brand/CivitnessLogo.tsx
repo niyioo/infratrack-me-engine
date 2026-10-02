@@ -1,0 +1,51 @@
+type CivitnessLogoProps = {
+  className?: string;
+  showWordmark?: boolean;
+  size?: number;
+};
+
+function SymbolMark({ size = 44 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path d="M44 7C54 10 60 20 60 31C60 33.7 59.6 36.4 58.8 39L54.2 37.7C54.9 35.5 55.2 33.3 55.2 31C55.2 22.4 50.4 14.7 42.6 11.2L44 7Z" fill="#0F3D78" />
+      <path d="M18.1 48.6C12.4 43.8 9 37 9 29.7C9 28.5 9.1 27.3 9.3 26.2L14 27.1C13.8 28 13.7 28.8 13.7 29.7C13.7 35.7 16.5 41.4 21.2 45.8L18.1 48.6Z" fill="#0F3D78" />
+      <path d="M14.6 23.9L10.9 20.3L20.8 10.5L24.4 14.1L14.6 23.9Z" fill="#0F3D78" />
+      <circle cx="9.5" cy="19.5" r="3.5" stroke="#0F3D78" strokeWidth="3" />
+      <circle cx="25" cy="10.5" r="3" stroke="#0F9C92" strokeWidth="3" />
+      <path d="M27.5 7.2C29.7 6.4 32 6 34.4 6C35.1 6 35.8 6 36.5 6.1L36 10.7C35.5 10.6 35 10.6 34.5 10.6C32.7 10.6 30.9 10.9 29.2 11.5L27.5 7.2Z" fill="#0F3D78" />
+      <path d="M18 37L24 33V45L18 41V37Z" fill="#0F9C92" />
+      <path d="M27 29L33 25V46L27 50V29Z" fill="#0F3D78" />
+      <path d="M36 21L42 17V47L36 43V21Z" fill="#0F3D78" />
+      <path d="M45 24L51 28V42L45 46V24Z" fill="#94AACC" />
+      <path d="M31.8 60L22.5 49.2L30.8 35.8H33.2L41.5 49.2L31.8 60Z" fill="#0F3D78" />
+      <path d="M31 40H33V45H31V40ZM31 48H33V53H31V48Z" fill="white" />
+    </svg>
+  );
+}
+
+export function CivitnessLogo({
+  className = "",
+  showWordmark = true,
+  size = 44,
+}: CivitnessLogoProps) {
+  if (!showWordmark) {
+    return <SymbolMark size={size} />;
+  }
+
+  return (
+    <div className={`inline-flex items-center gap-3 ${className}`}>
+      <SymbolMark size={size} />
+      <div className="text-[1.6rem] font-extrabold leading-none tracking-[-0.05em]">
+        <span style={{ color: "#0F3D78" }}>Civi</span>
+        <span style={{ color: "#0F9C92" }}>tness</span>
+      </div>
+    </div>
+  );
+}

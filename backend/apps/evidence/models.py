@@ -1,3 +1,6 @@
+import os
+import uuid
+
 from django.db import models
 from apps.common.constants import SubmissionStatus, SourceType, GeoValidationStatus
 
@@ -14,6 +17,7 @@ class EvidenceSubmission(models.Model):
         max_length=30, choices=SubmissionStatus.choices, default=SubmissionStatus.DRAFT
     )
     notes = models.TextField(blank=True)
+    idempotency_key = models.CharField(max_length=128, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     device_id = models.CharField(max_length=255, blank=True)
     device_platform = models.CharField(max_length=50, blank=True)
@@ -28,9 +32,29 @@ class EvidenceSubmission(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["submitted_by_user", "idempotency_key"],
+                condition=models.Q(idempotency_key__gt=""),
+                name="uniq_evid_idem_per_user",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["project", "milestone", "-created_at"], name="evid_proj_mst_cr_idx"),
+            models.Index(fields=["submitted_by_user", "idempotency_key"], name="evid_submit_idem_idx"),
+        ]
+
 
 def evidence_upload_path(instance, filename):
-    return f"evidence/project_{instance.evidence_submission.project_id}/milestone_{instance.evidence_submission.milestone_id}/{filename}"
+    # Random names: production serves MEDIA without auth, so evidence URLs must be
+    # unguessable (the old project/milestone/original-name pattern was enumerable).
+    # The uploaded name is kept in EvidenceFile.original_filename.
+    extension = os.path.splitext(filename)[1].lower()
+    if not extension or len(extension) > 6 or not extension[1:].isalnum():
+        extension = ""
+    submission = instance.evidence_submission
+    return f"evidence/project_{submission.project_id}/{uuid.uuid4().hex}{extension}"
 
 
 class EvidenceFile(models.Model):

@@ -5,6 +5,7 @@ export function buildCaptureMetadata(params: {
   milestoneId: number;
   userId: number;
   sourceType: string;
+  idempotencyKey: string;
   latitude: number;
   longitude: number;
   accuracyMeters?: number | null;
@@ -16,6 +17,7 @@ export function buildCaptureMetadata(params: {
     milestone_id: params.milestoneId,
     user_id: params.userId,
     source_type: params.sourceType,
+    idempotency_key: params.idempotencyKey,
     latitude: params.latitude,
     longitude: params.longitude,
     accuracy_meters: params.accuracyMeters ?? null,

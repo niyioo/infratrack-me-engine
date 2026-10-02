@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet } from "react-native";
+import { colors, radius, typography } from "@/lib/theme/tokens";
 
 const TONE: Record<string, { bg: string; text: string }> = {
-  success: { bg: "#ECFDF5", text: "#065F46" },
-  warning: { bg: "#FFFBEB", text: "#92400E" },
-  error:   { bg: "#FEF2F2", text: "#991B1B" },
-  info:    { bg: "#EFF6FF", text: "#1D4ED8" },
+  success: { bg: colors.successSoft, text: colors.success },
+  warning: { bg: colors.warningSoft, text: colors.warning },
+  error: { bg: colors.dangerSoft, text: colors.danger },
+  info: { bg: colors.infoSoft, text: colors.info },
 };
 
 export function AppBadge(props: {
@@ -20,6 +21,14 @@ export function AppBadge(props: {
 }
 
 const styles = StyleSheet.create({
-  badge: { alignSelf: "flex-start", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  label: { fontSize: 12, fontWeight: "600" },
+  badge: {
+    alignSelf: "flex-start",
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  label: {
+    ...typography.caption,
+    fontWeight: "700",
+  },
 });

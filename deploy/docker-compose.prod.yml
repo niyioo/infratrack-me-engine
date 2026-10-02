@@ -1,0 +1,119 @@
+# Production stack. Run from the repo root:
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --build
+# See docs/DEPLOYMENT.md. Unlike the dev docker-compose.yml: production settings,
+# no database/Redis ports on the host, no source bind mounts, HTTPS via Caddy.
+name: civitness
+
+x-backend: &backend
+  image: civitness-backend:prod
+  env_file: .env.prod
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.prod
+    DB_HOST: db
+    DB_PORT: "5432"
+    REDIS_URL: redis://redis:6379/0
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    <<: *backend
+    build:
+      context: ../backend
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             python manage.py setup_roles &&
+             gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --timeout 120 config.wsgi:application"
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+
+  celery:
+    <<: *backend
+    command: celery -A config worker -l info
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      backend:
+        condition: service_started
+
+  celery-beat:
+    <<: *backend
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      backend:
+        condition: service_started
+
+  citizen-portal:
+    build:
+      context: ../citizen-portal
+      args:
+        VITE_PUBLIC_API_BASE_URL: https://${API_DOMAIN}/api/public
+    environment:
+      PUBLIC_API_ORIGIN: https://${API_DOMAIN}
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: https://${API_DOMAIN}/api
+        VITE_CARTO_BASEMAP_KEY: ${VITE_CARTO_BASEMAP_KEY:-}
+        VITE_CARTO_BASEMAP_STYLE: ${VITE_CARTO_BASEMAP_STYLE:-voyager}
+        VITE_MAP_TILE_URL: ${VITE_MAP_TILE_URL:-}
+        VITE_MAP_TILE_ATTRIBUTION: ${VITE_MAP_TILE_ATTRIBUTION:-}
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - media_data:/srv/media:ro
+      - static_data:/srv/static:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - citizen-portal
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  media_data:
+  static_data:
+  caddy_data:
+  caddy_config:

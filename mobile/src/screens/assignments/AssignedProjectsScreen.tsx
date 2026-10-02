@@ -1,3 +1,4 @@
+import { PressableSurface } from "@/components/ui/PressableSurface";
 import { View, Text, Pressable, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { router } from "expo-router";
 import { useProjects } from "@/features/projects/hooks";
@@ -45,9 +46,10 @@ function ProjectCard({ project }: { project: any }) {
   const risk   = getRisk(project.risk_status);
 
   return (
-    <Pressable
+    <PressableSurface
       onPress={() => router.push(`/(main)/project/${project.id}`)}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={[styles.card]}
+      pressedStyle={styles.cardPressed}
     >
       <View style={[styles.cardAccent, { backgroundColor: status.dot }]} />
       <View style={styles.cardBody}>
@@ -80,7 +82,7 @@ function ProjectCard({ project }: { project: any }) {
           </View>
         </View>
       </View>
-    </Pressable>
+    </PressableSurface>
   );
 }
 

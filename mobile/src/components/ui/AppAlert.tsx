@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet } from "react-native";
+import { colors, radius, typography } from "@/lib/theme/tokens";
 
 const TONE: Record<string, { border: string; bg: string }> = {
-  success: { border: "#6EE7B7", bg: "#ECFDF5" },
-  warning: { border: "#FDE68A", bg: "#FFFBEB" },
-  error:   { border: "#FECACA", bg: "#FEF2F2" },
-  info:    { border: "#BFDBFE", bg: "#EFF6FF" },
+  success: { border: "#6EE7B7", bg: colors.successSoft },
+  warning: { border: "#FDE68A", bg: colors.warningSoft },
+  error: { border: "#FECACA", bg: colors.dangerSoft },
+  info: { border: "#BFDBFE", bg: colors.infoSoft },
 };
 
 export function AppAlert(props: {
@@ -22,7 +23,7 @@ export function AppAlert(props: {
 }
 
 const styles = StyleSheet.create({
-  wrap:    { borderRadius: 12, borderWidth: 1, padding: 14 },
-  title:   { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 4 },
-  message: { fontSize: 13, color: "#475569", lineHeight: 18 },
+  wrap: { borderRadius: radius.md, borderWidth: 1, padding: 14 },
+  title: { ...typography.body, fontWeight: "700", color: colors.ink, marginBottom: 4 },
+  message: { ...typography.caption, color: colors.slate600, lineHeight: 18 },
 });

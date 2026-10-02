@@ -1,0 +1,115 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Root env / temp
+# =========================
+.env
+.env.*
+# The template is meant to be shared (the README says to copy it).
+!.env.example
+!.env.prod.example
+*.log
+
+# =========================
+# Python / Django backend
+# =========================
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/**/*.pyd
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.coverage
+backend/htmlcov/
+backend/db.sqlite3
+backend/media/
+backend/staticfiles/
+backend/*.sqlite3
+
+# Django local env files
+backend/.env
+backend/.env.*
+
+# =========================
+# Node / Frontend / Mobile
+# =========================
+frontend/node_modules/
+mobile/node_modules/
+frontend/android/
+
+frontend/dist/
+citizen-portal/node_modules/
+citizen-portal/dist/
+frontend/.vite/
+frontend/.env
+frontend/.env.*
+
+mobile/.expo/
+mobile/.expo-shared/
+mobile/.env
+mobile/.env.*
+
+# Expo / React Native
+mobile/android/
+mobile/ios/
+mobile/web-build/
+mobile/.metro-health-check*
+mobile/expo-env.d.ts
+
+# =========================
+# Build / cache
+# =========================
+*.tsbuildinfo
+.cache/
+coverage/
+tmp/
+temp/
+
+# =========================
+# Postgres / Redis / local data
+# =========================
+*.db
+*.rdb
+
+# =========================
+# Uploaded/generated files
+# =========================
+uploads/
+artifacts/
+reports/
+exports/
+
+# =========================
+# Secrets / keys
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# =========================
+# Misc
+# =========================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.editorconfig
+
+# Demo recorder output
+scripts/demo/node_modules/
+scripts/demo/frames/
+scripts/demo/video/
+scripts/demo/site-photo.jpg
