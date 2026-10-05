@@ -163,6 +163,9 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
+      {/* The page scrolls under a transparent status bar; keep that strip solid so
+          the hero (and its wordmark) never draws behind the clock and icons. */}
+      <View pointerEvents="none" style={[styles.statusBarBackdrop, { height: insets.top }]} />
     </KeyboardAvoidingView>
   );
 }
@@ -268,6 +271,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     marginTop: spacing.xs,
+  },
+  statusBarBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.ink,
   },
   passwordToggle: {
     width: 36,
