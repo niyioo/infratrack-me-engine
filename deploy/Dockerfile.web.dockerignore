@@ -1,0 +1,10 @@
+# Build context is the repo root; send only what Dockerfile.web copies.
+*
+!frontend/
+!deploy/Caddyfile
+frontend/node_modules
+frontend/dist
+frontend/android
+frontend/.env
+frontend/.env.*
+frontend/*.tsbuildinfo

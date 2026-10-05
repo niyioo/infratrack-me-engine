@@ -14,6 +14,7 @@ export type User = {
   phone: string;
   is_active: boolean;
   roles: Role[];
+  capabilities: string[];
   created_at: string;
 };
 

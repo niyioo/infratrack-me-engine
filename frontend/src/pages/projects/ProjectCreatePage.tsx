@@ -1,61 +1,105 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { PageShell } from "@/app/layouts/PageShell";
+import { Alert } from "@/components/ui/Alert";
 import { Card } from "@/components/ui/Card";
+import { QueryStateCard } from "@/components/ui/QueryStateCard";
+import { ProjectForm } from "@/components/forms/ProjectForm";
+import { useAuth } from "@/features/auth/hooks";
+import { useAgencies, useContractors } from "@/features/organizations/hooks";
 import { useCreateProject } from "@/features/projects/hooks";
+import type { CreateProjectPayload } from "@/features/projects/types";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 export function ProjectCreatePage() {
   const navigate = useNavigate();
+  const { capabilities } = useAuth();
   const createProject = useCreateProject();
+  const agenciesQuery = useAgencies({});
+  const contractorsQuery = useContractors({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const agencies = agenciesQuery.data ?? [];
+  const contractors = contractorsQuery.data ?? [];
+  const directoryLoading = agenciesQuery.isLoading || contractorsQuery.isLoading;
+  const directoryError = agenciesQuery.isError || contractorsQuery.isError;
+  const canManageDirectory = capabilities.includes("users.view_directory");
 
-  const [form, setForm] = useState({
-    project_code: "",
-    title: "",
-    description: "",
-    agency: 1,
-    contractor: 1,
-    supervising_department: "Infrastructure Delivery Unit",
-    category: "BUILDING",
-    sector: "HEALTH",
-    state: "Ondo",
-    lga: "Akure North",
-    ward: "",
-    site_address: "",
-    latitude: 7.25,
-    longitude: 5.22,
-    geo_fence_radius_meters: 50,
-    budget_amount: 10000000,
-    currency: "NGN",
-    funding_cycle: "2026-Q2",
-    start_date: "2026-03-01",
-    expected_end_date: "2026-09-30",
-    requires_independent_validation: true,
-    risk_status: "LOW",
-    current_status: "NOT_STARTED"
-  });
+  async function handleSubmit(payload: CreateProjectPayload) {
+    setSubmitError(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const project = await createProject.mutateAsync(form);
-    navigate(`/projects/${project.id}`);
+    try {
+      const project = await createProject.mutateAsync(payload);
+      navigate(`/projects/${project.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, "ProveTrack could not create the project right now."));
+    }
+  }
+
+  if (directoryLoading) {
+    return (
+      <PageShell title="Create Project" description="Loading project directories...">
+        <QueryStateCard
+          state="loading"
+          title="Loading project directories"
+          description="Fetching active agencies and contractors for this form."
+        />
+      </PageShell>
+    );
+  }
+
+  if (directoryError) {
+    return (
+      <PageShell title="Create Project" description="Project registration workspace.">
+        <QueryStateCard
+          state="error"
+          title="Project form is missing reference data"
+          description="ProveTrack could not load the active agency and contractor directories needed for project setup."
+        />
+      </PageShell>
+    );
+  }
+
+  if (agencies.length === 0 || contractors.length === 0) {
+    return (
+      <PageShell title="Create Project" description="Project registration workspace.">
+        <QueryStateCard
+          state="empty"
+          title="Reference directories are empty"
+          description="Create at least one active agency and one active contractor before registering a project."
+          action={
+            canManageDirectory ? (
+              <Link className="inline-flex text-sm font-medium text-brand" to="/vendors">
+                Open Vendors Directory
+              </Link>
+            ) : undefined
+          }
+        />
+      </PageShell>
+    );
   }
 
   return (
-    <Card className="max-w-4xl p-6">
-      <h1 className="text-xl font-semibold">Create Project</h1>
-      <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-        <input className="rounded-lg border p-2" placeholder="Project Code" value={form.project_code} onChange={(e) => setForm({ ...form, project_code: e.target.value })} />
-        <input className="rounded-lg border p-2" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <input className="rounded-lg border p-2 md:col-span-2" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <input className="rounded-lg border p-2" placeholder="Site Address" value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} />
-        <input className="rounded-lg border p-2" placeholder="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-        <input className="rounded-lg border p-2" placeholder="LGA" value={form.lga} onChange={(e) => setForm({ ...form, lga: e.target.value })} />
-        <input className="rounded-lg border p-2" type="number" placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: Number(e.target.value) })} />
-        <input className="rounded-lg border p-2" type="number" placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })} />
-        <input className="rounded-lg border p-2" type="number" placeholder="Budget Amount" value={form.budget_amount} onChange={(e) => setForm({ ...form, budget_amount: Number(e.target.value) })} />
-        <button className="rounded-lg bg-slate-900 px-4 py-2 text-white md:col-span-2" type="submit">
-          {createProject.isPending ? "Creating..." : "Create Project"}
-        </button>
-      </form>
-    </Card>
+    <PageShell
+      title="Create Project"
+      description="Register a new project and capture the geo-verified reference data used across monitoring workflows."
+    >
+      {canManageDirectory ? (
+        <Alert
+          variant="info"
+          message="Need to register a new funding agency or contractor first? Use the Vendors workspace and return here once the directory is updated."
+        />
+      ) : null}
+
+      <Card className="p-6">
+        <ProjectForm
+          agencies={agencies}
+          contractors={contractors}
+          onSubmit={handleSubmit}
+          loading={createProject.isPending}
+          submitLabel="Create Project"
+          submitError={submitError}
+        />
+      </Card>
+    </PageShell>
   );
 }

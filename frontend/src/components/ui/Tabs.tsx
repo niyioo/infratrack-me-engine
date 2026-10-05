@@ -21,8 +21,8 @@ export function Tabs({ items, active, onChange }: Props) {
           className={clsx(
             "rounded-lg px-4 py-2 text-sm font-medium",
             active === item.key
-              ? "bg-slate-900 text-white"
-              : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              ? "bg-brand text-white shadow-brand"
+              : "bg-brand-soft/60 text-brand-strong hover:bg-brand-soft"
           )}
         >
           {item.label}

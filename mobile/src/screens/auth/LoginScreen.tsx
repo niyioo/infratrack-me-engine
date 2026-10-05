@@ -1,86 +1,61 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-
-import { login, fetchCurrentUserByEmail } from "@/features/auth/api";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { AppAlert } from "@/components/ui/AppAlert";
+import { AppBadge } from "@/components/ui/AppBadge";
+import { AppButton } from "@/components/ui/AppButton";
+import { AppCard } from "@/components/ui/AppCard";
+import { AppInput } from "@/components/ui/AppInput";
+import { ProveTrackBrand } from "@/components/brand/ProveTrackBrand";
+import { colors, spacing, typography } from "@/lib/theme/tokens";
+import { fetchCurrentUser, login } from "@/features/auth/api";
 import { setStoredUser, setTokens } from "@/features/auth/storage";
-
-// ─── Reusable Field ──────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry = false,
-  autoCapitalize = "none",
-  keyboardType = "default",
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder?: string;
-  secureTextEntry?: boolean;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: any;
-}) {
-  const [focused, setFocused] = useState(false);
-
-  return (
-    <View style={styles.fieldWrapper}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.inputBox, focused && styles.inputBoxFocused]}>
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
-          secureTextEntry={secureTextEntry}
-          autoCapitalize={autoCapitalize}
-          keyboardType={keyboardType}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-      </View>
-    </View>
-  );
-}
-
-// ─── Main Screen ─────────────────────────────────────────────────────────────
+import { endpoints } from "@/services/api/endpoints";
+import axios from "axios";
 
 export default function LoginScreen() {
   const router = useRouter();
-
-  const [email, setEmail] = useState("field@infratrack.local");
-  const [password, setPassword] = useState("Password123!");
+  const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const emailError = email.length > 0 && !email.includes("@") ? "Enter a valid email address." : "";
+  const passwordError = password.length > 0 && password.length < 8 ? "Password must be at least 8 characters." : "";
+
   async function handleLogin() {
+    if (!email || !password || emailError || passwordError) {
+      setError("Enter valid credentials to continue.");
+      return;
+    }
+
     setLoading(true);
     setError("");
-
     try {
-      const tokens = await login({ email, password });
+      const tokens = await login({ email: email.trim(), password });
       await setTokens(tokens.access, tokens.refresh);
-
-      const user = await fetchCurrentUserByEmail(email);
-      if (user) await setStoredUser(user);
-
+      const user = await fetchCurrentUser();
+      await setStoredUser(user);
       router.replace("/(main)/dashboard");
-    } catch {
-      setError("Unable to sign in. Check your credentials or network.");
+    } catch (err) {
+      // Tell the officer which problem it is: a field officer on poor signal needs
+      // "can't reach the server", not a hint that their password may be wrong.
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      if (status === 401 || status === 400) {
+        setError("Incorrect email or password.");
+      } else if (status === 429) {
+        setError("Too many sign-in attempts. Wait a minute and try again.");
+      } else if (axios.isAxiosError(err) && !err.response) {
+        setError("Can't reach the ProveTrack server. Check your connection and try again.");
+      } else {
+        setError("Sign-in failed on the server. Please try again shortly.");
+      }
+      if (__DEV__) console.warn("Login failed:", status ?? (err as Error)?.message, endpoints.baseUrl);
     } finally {
       setLoading(false);
     }
@@ -90,283 +65,225 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.screen}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
     >
+      <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── BACKGROUND SHAPES ── */}
-        <View style={styles.blobTop} />
-        <View style={styles.blobBottom} />
-
-        {/* ── BRAND BLOCK ── */}
-        <View style={styles.brand}>
-          <View style={styles.logoMark}>
-            <View style={styles.logoInner} />
-          </View>
-          <Text style={styles.appName}>InfraTrack</Text>
-          <Text style={styles.appTagline}>Field Monitoring Platform</Text>
-        </View>
-
-        {/* ── CARD ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome back</Text>
-          <Text style={styles.cardSubtitle}>
-            Sign in to your field account to continue
+        <View style={[styles.hero, { paddingTop: insets.top + spacing.xl }]}>
+          <ProveTrackBrand size="lg" stacked light />
+          <AppBadge label="Secure Access" tone="info" />
+          <Text style={styles.heroSubtitle}>
+            Field Intelligence & Accountability Platform. Track progress. Prove delivery.
           </Text>
-
-          <View style={styles.form}>
-            <Field
-              label="Email address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@infratrack.com"
-              keyboardType="email-address"
-            />
-
-            <Field
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-            />
-
-            {/* ERROR */}
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorIcon}>⚠</Text>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* SIGN IN BUTTON */}
-            <TouchableOpacity
-              style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <View style={styles.signInContent}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                  <Text style={styles.signInText}>Signing in…</Text>
-                </View>
-              ) : (
-                <Text style={styles.signInText}>Sign In</Text>
-              )}
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* ── FOOTER ── */}
-        <Text style={styles.footer}>
-          InfraTrack Mobile · Secure Field Operations
-        </Text>
+        <View style={styles.formWrap}>
+          <AppCard>
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle}>Sign in</Text>
+              <Text style={styles.formSubtitle}>Use your authorized ProveTrack account to continue.</Text>
+            </View>
+
+            <View style={styles.formFields}>
+              <AppInput
+                label="Email address"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="name@agency.gov"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                error={emailError}
+              />
+              <AppInput
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter password"
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+                textContentType="password"
+                error={passwordError}
+                rightAccessory={
+                  <Pressable
+                    onPress={() => setShowPassword((current) => !current)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                    style={styles.passwordToggle}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color={colors.slate500}
+                    />
+                  </Pressable>
+                }
+              />
+            </View>
+
+            {error ? <AppAlert tone="error" message={error} /> : null}
+
+            <View style={styles.footerPanel}>
+              <Text style={styles.footerPanelTitle}>Continue to Workspace</Text>
+              <Text style={styles.footerPanelText}>
+                Sign in to access project monitoring, field capture, and reporting tools.
+              </Text>
+              <AppButton title="Sign In Securely" variant="accent" onPress={handleLogin} loading={loading} />
+              <Text style={styles.footerNote}>
+                This session is protected with secure token storage and role-based access control.
+              </Text>
+            </View>
+          </AppCard>
+
+          {/* Citizens use the same app without an account. */}
+          <View style={styles.citizenCard}>
+            <View style={styles.citizenHeader}>
+              <Ionicons name="megaphone-outline" size={20} color={colors.accentStrong} />
+              <Text style={styles.citizenTitle}>Not a staff member?</Text>
+            </View>
+            <Text style={styles.citizenText}>
+              Report a problem with a public project near you. No account, name or phone number needed.
+            </Text>
+            <View style={styles.citizenButtons}>
+              <View style={{ flex: 1 }}>
+                <AppButton title="Report a project" variant="accent" onPress={() => router.push("/(citizen)/report")} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppButton title="Track a report" variant="secondary" onPress={() => router.push("/(citizen)/track")} />
+              </View>
+            </View>
+          </View>
+        </View>
       </ScrollView>
+      {/* The page scrolls under a transparent status bar; keep that strip solid so
+          the hero (and its wordmark) never draws behind the clock and icons. */}
+      <View pointerEvents="none" style={[styles.statusBarBackdrop, { height: insets.top }]} />
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const NAVY  = "#0F172A";
-const BLUE  = "#2563EB";
-const BLUE2 = "#1D4ED8";
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
-  scroll: {
+  scrollContent: {
     flexGrow: 1,
+  },
+  hero: {
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
+    gap: spacing.md,
+    backgroundColor: colors.ink,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroSubtitle: {
+    ...typography.body,
+    color: colors.slate400,
+  },
+  formWrap: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    paddingBottom: spacing["3xl"],
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 48,
   },
-
-  // Background blobs
-  blobTop: {
-    position: "absolute",
-    top: -80,
-    right: -80,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: "#DBEAFE",
-    opacity: 0.6,
+  formHeader: {
+    gap: 4,
+    marginBottom: spacing.lg,
   },
-  blobBottom: {
-    position: "absolute",
-    bottom: -60,
-    left: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#E0F2FE",
-    opacity: 0.5,
-  },
-
-  // Brand
-  brand: {
-    alignItems: "center",
-    marginBottom: 36,
-  },
-  logoMark: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: NAVY,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 14,
-    shadowColor: NAVY,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  logoInner: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 3,
-    borderColor: "#60A5FA",
-    backgroundColor: "transparent",
-  },
-  appName: {
-    fontSize: 26,
+  formTitle: {
+    fontSize: 24,
     fontWeight: "800",
-    color: NAVY,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
+    color: colors.ink,
   },
-  appTagline: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "500",
-    marginTop: 3,
-    letterSpacing: 0.4,
+  formSubtitle: {
+    ...typography.body,
+    color: colors.slate500,
   },
-
-  // Card
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 28,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.09,
-    shadowRadius: 20,
-    elevation: 6,
+  formFields: {
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
-  cardTitle: {
-    fontSize: 21,
-    fontWeight: "800",
-    color: NAVY,
-    letterSpacing: -0.3,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: "#94A3B8",
-    marginTop: 4,
-    lineHeight: 18,
-  },
-
-  // Form
-  form: {
-    marginTop: 24,
-    gap: 16,
-  },
-  fieldWrapper: {
-    gap: 6,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-  },
-  inputBox: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  inputBoxFocused: {
-    borderColor: BLUE,
-    backgroundColor: "#EFF6FF",
-  },
-  input: {
-    fontSize: 15,
-    color: NAVY,
-  },
-
-  // Error
-  errorBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderColor: "#FECACA",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  errorIcon: {
-    fontSize: 13,
-    color: "#EF4444",
-    marginTop: 1,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#DC2626",
-    lineHeight: 18,
-  },
-
-  // Sign In button
-  signInBtn: {
-    backgroundColor: BLUE,
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  signInBtnDisabled: {
-    backgroundColor: "#93C5FD",
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  signInContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  signInText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-
-  // Footer
   footer: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  footerPanel: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.brandStrong,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.brand,
+  },
+  footerPanelTitle: {
+    ...typography.sectionTitle,
+    color: colors.white,
+  },
+  footerPanelText: {
+    ...typography.caption,
+    color: colors.slate100,
+    fontWeight: "500",
+    lineHeight: 18,
+  },
+  footerNote: {
+    ...typography.caption,
+    color: colors.slate300,
+    fontWeight: "500",
     textAlign: "center",
-    marginTop: 28,
-    fontSize: 11,
-    color: "#CBD5E1",
-    letterSpacing: 0.3,
+  },
+  citizenCard: {
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: "#B7E4DF",
+  },
+  citizenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  citizenTitle: {
+    ...typography.sectionTitle,
+    color: colors.ink,
+  },
+  citizenText: {
+    ...typography.caption,
+    color: colors.slate600,
+    lineHeight: 18,
+  },
+  citizenButtons: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  statusBarBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.ink,
+  },
+  passwordToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

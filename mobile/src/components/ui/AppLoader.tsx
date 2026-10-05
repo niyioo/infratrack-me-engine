@@ -1,9 +1,10 @@
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
+import { colors, typography } from "@/lib/theme/tokens";
 
 export function AppLoader({ label = "Loading..." }: { label?: string }) {
   return (
     <View style={styles.wrap}>
-      <ActivityIndicator size="large" color="#2563EB" />
+      <ActivityIndicator size="large" color={colors.brand} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -14,11 +15,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
   label: {
     marginTop: 12,
-    fontSize: 14,
-    color: "#64748B",
+    ...typography.body,
+    color: colors.slate500,
   },
 });

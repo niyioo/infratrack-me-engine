@@ -1,1 +1,1 @@
-export { AssignedProjectsScreen as default } from "@/screens/assignments/AssignedProjectsScreen";
+export { HomeDashboardScreen as default } from "@/screens/home/HomeDashboardScreen";

@@ -13,7 +13,7 @@ type Props = {
 type FormValues = {
   decision: string;
   comments: string;
-  item_scores: Record<number, number>;
+  item_scores: Record<string, number>;
 };
 
 export function QAReviewForm({ checklistItems, onSubmit }: Props) {
@@ -60,7 +60,7 @@ export function QAReviewForm({ checklistItems, onSubmit }: Props) {
               type="number"
               min={0}
               max={item.max_score}
-              {...register(`item_scores.${item.id}` as const)}
+              {...register(`item_scores.${item.id}` as `item_scores.${string}`)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </div>

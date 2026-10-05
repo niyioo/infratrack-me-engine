@@ -8,7 +8,7 @@ type Props = {
 
 export function Card({ children, className }: Props) {
   return (
-    <div className={clsx("rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
+    <div className={clsx("rounded-xl border border-slate-200/90 bg-white shadow-brand", className)}>
       {children}
     </div>
   );

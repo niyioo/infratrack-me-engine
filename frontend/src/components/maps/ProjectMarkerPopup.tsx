@@ -1,7 +1,15 @@
 import { Link } from "react-router-dom";
-import type { Project } from "@/features/projects/types";
+type PopupProject = {
+  id: number;
+  title: string;
+  project_code: string;
+  state: string;
+  lga: string;
+  current_status: string;
+  risk_status: string;
+};
 
-export function ProjectMarkerPopup({ project }: { project: Project }) {
+export function ProjectMarkerPopup({ project }: { project: PopupProject }) {
   return (
     <div className="space-y-1 text-sm">
       <p className="font-semibold">{project.title}</p>

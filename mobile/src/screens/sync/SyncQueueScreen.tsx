@@ -1,49 +1,47 @@
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { submitQueuedEvidenceItem } from "@/features/evidence/api";
+import { useRetryOfflineQueueItem, useRunOfflineSync, useOfflineQueue } from "@/features/sync/hooks";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { SyncStatusBadge } from "@/components/sync/SyncStatusBadge";
-
-// ─── Config ──────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; dot: string; text: string; bg: string; icon: string; desc: string }
+  { label: string; dot: string; text: string; bg: string; desc: string }
 > = {
   PENDING: {
     label: "Pending",
-    dot:   "#F59E0B",
-    text:  "#92400E",
-    bg:    "#FFFBEB",
-    icon:  "🕐",
-    desc:  "Awaiting network — will upload automatically",
+    dot: "#F59E0B",
+    text: "#92400E",
+    bg: "#FFFBEB",
+    desc: "Awaiting connectivity and ready for the next sync cycle.",
   },
   FAILED: {
     label: "Failed",
-    dot:   "#EF4444",
-    text:  "#991B1B",
-    bg:    "#FEF2F2",
-    icon:  "⚠️",
-    desc:  "Upload failed — tap Retry to try again",
+    dot: "#EF4444",
+    text: "#991B1B",
+    bg: "#FEF2F2",
+    desc: "Sync failed. Review the failure reason and retry when the device is stable.",
   },
   SYNCED: {
     label: "Synced",
-    dot:   "#10B981",
-    text:  "#065F46",
-    bg:    "#ECFDF5",
-    icon:  "✅",
-    desc:  "Successfully uploaded",
+    dot: "#10B981",
+    text: "#065F46",
+    bg: "#ECFDF5",
+    desc: "Upload completed successfully and is now traceable in the backend.",
+  },
+  SYNCING: {
+    label: "Syncing",
+    dot: "#2563EB",
+    text: "#1D4ED8",
+    bg: "#EFF6FF",
+    desc: "Evidence is currently being transmitted.",
   },
   DEFAULT: {
     label: "Unknown",
-    dot:   "#94A3B8",
-    text:  "#475569",
-    bg:    "#F1F5F9",
-    icon:  "❓",
-    desc:  "Status unknown",
+    dot: "#94A3B8",
+    text: "#475569",
+    bg: "#F1F5F9",
+    desc: "Queue state is not available.",
   },
 };
 
@@ -51,42 +49,41 @@ function getStatusConfig(key: string) {
   return STATUS_CONFIG[key] ?? STATUS_CONFIG.DEFAULT;
 }
 
-// ─── Mock data (wire up real queue later) ────────────────────────────────────
-
-const mockItems = [
-  { localId: "1", projectId: 1, milestoneId: 1, syncStatus: "PENDING", capturedAt: new Date().toISOString() },
-  { localId: "2", projectId: 1, milestoneId: 2, syncStatus: "FAILED",  capturedAt: new Date(Date.now() - 3600000).toISOString() },
-];
-
-// ─── Queue Item Card ──────────────────────────────────────────────────────────
-
 function QueueCard({
   item,
   index,
   onRetry,
 }: {
-  item: typeof mockItems[0];
+  item: {
+    localId: string;
+    projectId: number;
+    milestoneId: number;
+    syncStatus: string;
+    retryCount: number;
+    createdAt: string;
+    lastError?: string;
+    lastSyncedAt?: string;
+  };
   index: number;
   onRetry?: (id: string) => void;
 }) {
   const cfg = getStatusConfig(item.syncStatus);
-  const time = new Date(item.capturedAt).toLocaleTimeString("en-NG", {
+  const timestamp = new Date(item.createdAt);
+  const time = timestamp.toLocaleTimeString("en-NG", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
-  const date = new Date(item.capturedAt).toLocaleDateString("en-NG", {
+  const date = timestamp.toLocaleDateString("en-NG", {
     day: "numeric",
     month: "short",
   });
 
   return (
     <View style={styles.card}>
-      {/* Left accent bar */}
       <View style={[styles.cardBar, { backgroundColor: cfg.dot }]} />
 
       <View style={styles.cardBody}>
-        {/* TOP */}
         <View style={styles.cardTop}>
           <View style={styles.indexBadge}>
             <Text style={styles.indexText}>{String(index + 1).padStart(2, "0")}</Text>
@@ -97,41 +94,40 @@ function QueueCard({
           </View>
         </View>
 
-        {/* TITLE */}
         <Text style={styles.cardTitle}>
           Project <Text style={styles.cardIdAccent}>#{item.projectId}</Text>
-          {"  ·  "}
+          {" | "}
           Milestone <Text style={styles.cardIdAccent}>#{item.milestoneId}</Text>
         </Text>
 
-        {/* STATUS DESCRIPTION */}
-        <View style={styles.descRow}>
-          <Text style={styles.descIcon}>{cfg.icon}</Text>
-          <Text style={styles.descText}>{cfg.desc}</Text>
-        </View>
+        <Text style={styles.descText}>{cfg.desc}</Text>
+        {item.lastError ? <Text style={styles.errorText}>{item.lastError}</Text> : null}
 
-        {/* DIVIDER */}
         <View style={styles.divider} />
 
-        {/* FOOTER: time + retry */}
         <View style={styles.cardFooter}>
           <View style={styles.timeRow}>
-            <Text style={styles.timeIcon}>📅</Text>
-            <Text style={styles.timeText}>{date} · {time}</Text>
+            <Text style={styles.timeText}>
+              {date} | {time}
+            </Text>
+            <Text style={styles.timeMeta}>Retry count: {item.retryCount}</Text>
+            {item.lastSyncedAt ? (
+              <Text style={styles.timeMeta}>
+                Synced: {new Date(item.lastSyncedAt).toLocaleString("en-NG")}
+              </Text>
+            ) : null}
           </View>
 
-          {item.syncStatus === "FAILED" && (
+          {item.syncStatus === "FAILED" ? (
             <TouchableOpacity
               style={styles.retryBtn}
               activeOpacity={0.8}
               onPress={() => onRetry?.(item.localId)}
             >
-              <Text style={styles.retryIcon}>🔄</Text>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
 
-          {/* Keep SyncStatusBadge for whatever internal logic it carries */}
           <View style={styles.badgeWrap}>
             <SyncStatusBadge status={item.syncStatus as any} />
           </View>
@@ -141,40 +137,56 @@ function QueueCard({
   );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
-
 export function SyncQueueScreen() {
-  const pending = mockItems.filter((i) => i.syncStatus === "PENDING").length;
-  const failed  = mockItems.filter((i) => i.syncStatus === "FAILED").length;
-  const total   = mockItems.length;
+  const { data: queue = [] } = useOfflineQueue();
+  const { online } = useNetworkStatus();
+  const runSyncMutation = useRunOfflineSync();
+  const retryMutation = useRetryOfflineQueueItem();
+  const pending = queue.filter((item) => item.syncStatus === "PENDING").length;
+  const failed = queue.filter((item) => item.syncStatus === "FAILED").length;
+  const total = queue.length;
 
-  function handleRetry(localId: string) {
-    // wire up real retry logic here
-    console.log("Retry:", localId);
+  async function handleRetry(localId: string) {
+    try {
+      await retryMutation.mutateAsync({ localId, syncHandler: submitQueuedEvidenceItem });
+      Alert.alert("Retry complete", "The queued evidence item was retried successfully.");
+    } catch (error) {
+      Alert.alert(
+        "Retry failed",
+        error instanceof Error ? error.message : "The queued evidence item could not be retried."
+      );
+    }
   }
 
   return (
     <View style={styles.screen}>
       <FlatList
-        data={mockItems}
+        data={queue}
         keyExtractor={(item) => item.localId}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-
         ListHeaderComponent={
           <>
-            {/* ── HEADER ── */}
             <View style={styles.header}>
               <View style={styles.headerBadge}>
                 <Text style={styles.headerBadgeText}>OFFLINE QUEUE</Text>
               </View>
               <Text style={styles.headerTitle}>Sync Queue</Text>
               <Text style={styles.headerSubtitle}>
-                Offline evidence awaiting upload or retry
+                Live queue visibility for field evidence awaiting upload or retry.
               </Text>
+              <TouchableOpacity
+                style={[styles.runSyncButton, !online && styles.runSyncButtonDisabled]}
+                activeOpacity={0.85}
+                onPress={() => runSyncMutation.mutate(submitQueuedEvidenceItem)}
+                disabled={!online || runSyncMutation.isPending}
+              >
+                <Text style={styles.runSyncButtonText}>
+                  {runSyncMutation.isPending ? "Running Sync..." : online ? "Run Full Sync" : "Offline"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {/* ── KPI ROW ── */}
             <View style={styles.kpiRow}>
               <View style={[styles.kpiCard, { borderTopColor: "#64748B" }]}>
                 <Text style={[styles.kpiValue, { color: "#64748B" }]}>{total}</Text>
@@ -190,16 +202,12 @@ export function SyncQueueScreen() {
               </View>
             </View>
 
-            {/* ── CONNECTIVITY NOTICE ── */}
             <View style={styles.notice}>
-              <Text style={styles.noticeIcon}>📡</Text>
               <Text style={styles.noticeText}>
-                Pending items will sync automatically when connectivity is
-                restored. Failed items require a manual retry.
+                Queued evidence remains on-device until a successful sync confirms upload and the queue item is marked synced.
               </Text>
             </View>
 
-            {/* ── SECTION HEADING ── */}
             <View style={styles.sectionHeading}>
               <Text style={styles.sectionTitle}>Queued Items</Text>
               <View style={styles.sectionCount}>
@@ -208,30 +216,21 @@ export function SyncQueueScreen() {
             </View>
           </>
         }
-
-        renderItem={({ item, index }) => (
-          <QueueCard item={item} index={index} onRetry={handleRetry} />
-        )}
-
+        renderItem={({ item, index }) => <QueueCard item={item} index={index} onRetry={handleRetry} />}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>☁️</Text>
-            <Text style={styles.emptyTitle}>All caught up</Text>
+            <Text style={styles.emptyTitle}>Queue is clear</Text>
             <Text style={styles.emptyText}>
-              No items in the offline queue. All captures have been synced.
+              New offline evidence will appear here when uploads are deferred.
             </Text>
           </View>
         }
-
         ListFooterComponent={<View style={{ height: 32 }} />}
       />
     </View>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: {
@@ -241,8 +240,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 8,
   },
-
-  // Header
   header: {
     backgroundColor: "#0F172A",
     paddingHorizontal: 24,
@@ -275,8 +272,22 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
-
-  // KPI
+  runSyncButton: {
+    alignSelf: "flex-start",
+    marginTop: 14,
+    borderRadius: 999,
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  runSyncButtonDisabled: {
+    backgroundColor: "#475569",
+  },
+  runSyncButtonText: {
+    color: "#F8FAFC",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   kpiRow: {
     flexDirection: "row",
     gap: 10,
@@ -295,83 +306,104 @@ const styles = StyleSheet.create({
     shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 3,
   },
   kpiValue: {
     fontSize: 22,
     fontWeight: "800",
-    letterSpacing: -0.5,
   },
   kpiLabel: {
-    fontSize: 11,
-    color: "#94A3B8",
-    marginTop: 2,
-    fontWeight: "500",
-  },
-
-  // Notice
-  notice: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    borderRadius: 12,
-    padding: 13,
-  },
-  noticeIcon: { fontSize: 15, marginTop: 1 },
-  noticeText: {
-    flex: 1,
+    marginTop: 4,
     fontSize: 12,
-    color: "#1D4ED8",
-    lineHeight: 18,
-  },
-
-  // Section heading
-  sectionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1E293B",
+    color: "#64748B",
+    fontWeight: "600",
     letterSpacing: 0.2,
   },
-  sectionCount: {
-    backgroundColor: "#E2E8F0",
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  notice: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: "#2563EB",
   },
-  sectionCountText: { fontSize: 11, fontWeight: "700", color: "#64748B" },
-
-  // Card
-  card: {
+  noticeText: {
+    color: "#475569",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  sectionHeading: {
+    marginTop: 20,
+    marginBottom: 12,
+    paddingHorizontal: 16,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: -0.3,
+  },
+  sectionCount: {
+    minWidth: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionCountText: {
+    color: "#334155",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  emptyState: {
+    marginHorizontal: 16,
+    marginTop: 12,
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  emptyText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#64748B",
+    textAlign: "center",
+  },
+  card: {
     marginHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     overflow: "hidden",
     shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    flexDirection: "row",
   },
-  cardBar: { width: 4 },
+  cardBar: {
+    width: 6,
+  },
   cardBody: {
     flex: 1,
-    padding: 16,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   cardTop: {
     flexDirection: "row",
@@ -380,117 +412,90 @@ const styles = StyleSheet.create({
   },
   indexBadge: {
     backgroundColor: "#F1F5F9",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   indexText: {
     fontSize: 11,
-    fontWeight: "800",
-    color: "#64748B",
+    fontWeight: "700",
+    color: "#475569",
     letterSpacing: 0.5,
   },
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    marginTop: 14,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "800",
     color: "#0F172A",
+    letterSpacing: -0.2,
   },
   cardIdAccent: {
     color: "#2563EB",
   },
-  descRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-  },
-  descIcon: { fontSize: 13, marginTop: 1 },
   descText: {
-    flex: 1,
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#475569",
+  },
+  errorText: {
+    marginTop: 8,
     fontSize: 12,
-    color: "#64748B",
     lineHeight: 18,
+    color: "#B91C1C",
+    fontWeight: "600",
   },
   divider: {
     height: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#E2E8F0",
+    marginVertical: 14,
   },
-
-  // Footer row
   cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   timeRow: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
     gap: 4,
   },
-  timeIcon: { fontSize: 12 },
   timeText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "500",
-  },
-  retryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderColor: "#FECACA",
-    borderRadius: 20,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
-  retryIcon: { fontSize: 12 },
-  retryText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#DC2626",
+    color: "#334155",
+  },
+  timeMeta: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  retryBtn: {
+    alignSelf: "flex-start",
+    backgroundColor: "#0F172A",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  retryText: {
+    color: "#F8FAFC",
+    fontSize: 12,
+    fontWeight: "700",
   },
   badgeWrap: {
-    // hide the raw SyncStatusBadge visually if you prefer; keep it for logic
-    opacity: 0,
-    width: 0,
-    overflow: "hidden",
-  },
-
-  // Empty
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: 6,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: "#94A3B8",
-    textAlign: "center",
-    lineHeight: 20,
+    alignSelf: "flex-start",
   },
 });

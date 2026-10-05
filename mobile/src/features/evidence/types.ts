@@ -10,4 +10,6 @@ export type OfflineEvidenceItem = {
   retryCount: number;
   createdAt: string;
   lastAttemptAt?: string;
+  lastSyncedAt?: string;
+  lastError?: string;
 };

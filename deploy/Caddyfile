@@ -1,0 +1,53 @@
+# Caddy obtains and renews HTTPS certificates for all three domains automatically.
+# No `log` directive anywhere: Caddy writes no access logs, so no visitor IPs
+# (including anonymous citizen reporters on the API) are kept on disk.
+{
+	email {$ACME_EMAIL}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+}
+
+# Staff dashboard (static single-page app).
+{$APP_DOMAIN} {
+	import security_headers
+	header X-Frame-Options "DENY"
+	root * /srv/dashboard
+	encode gzip zstd
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} /index.html
+	file_server
+}
+
+# API, Django admin, static files and uploaded media.
+{$API_DOMAIN} {
+	import security_headers
+	encode gzip zstd
+	handle /static/* {
+		root * /srv
+		file_server
+	}
+	# Evidence and citizen photos have random, unguessable names; no listings.
+	handle /media/* {
+		root * /srv
+		header X-Robots-Tag "noindex"
+		file_server
+	}
+	handle {
+		reverse_proxy backend:8000
+	}
+}
+
+# Public citizen portal (its own nginx adds the strict CSP and keeps no logs).
+{$PORTAL_DOMAIN} {
+	import security_headers
+	encode gzip zstd
+	reverse_proxy citizen-portal:80
+}

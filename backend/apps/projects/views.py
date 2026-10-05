@@ -1,19 +1,49 @@
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
-from django.db.models import Q
 
+from apps.accounts.models import User
+from apps.common.constants import ProjectStatus
 from apps.projects.models import Project, ProjectAssignment
 from apps.projects.serializers import (
     ProjectSerializer,
+    ProjectDetailSerializer,
     ProjectCreateUpdateSerializer,
     ProjectAssignmentSerializer,
+    ProjectLifecycleEventSerializer,
 )
+from apps.analytics.services import AnalyticsService
 from apps.projects.services import ProjectService
-from apps.common.permissions import IsProjectVisibleToUser
+from apps.audits.services import AuditService
+from apps.notifications.services import NotificationService
+from apps.projects.tasks import dispatch_project_alerts_task
+from apps.common.permissions import (
+    HIGH_PRIVILEGE_ROLE_CODES,
+    HasActionCapability,
+    IsProjectVisibleToUser,
+    get_user_role_codes,
+    is_project_managed_by_user,
+)
+from apps.common.pagination import OptionalPaginationMixin
+from apps.common.throttles import ReportExportThrottle
+from apps.projects.reports import collect_project_report, export_projects_csv, render_project_report_pdf
+
+ASSIGNABLE_PROJECT_ROLES = {"M_E_OFFICER", "FIELD_OFFICER", "CONTRACTOR", "QA_OFFICER", "FINANCE_OFFICER"}
+INITIAL_PROJECT_STATUSES = {ProjectStatus.NOT_STARTED, ProjectStatus.ACTIVE}
+PROJECT_AUDIT_FIELDS = [
+    "id", "project_code", "title", "agency", "contractor", "current_status", "risk_status",
+    "state", "lga", "budget_amount", "geo_fence_radius_meters",
+]
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
+# Excel only reads a UTF-8 CSV correctly (e.g. the naira sign) when it starts with a BOM.
+CSV_BOM = "﻿"
+
+
+class ProjectViewSet(OptionalPaginationMixin, viewsets.ModelViewSet):
     """
     Project API
 
@@ -26,6 +56,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     queryset = Project.objects.select_related("agency", "contractor").all()
     permission_classes = [permissions.IsAuthenticated, IsProjectVisibleToUser]
+    action_capability_map = {
+        "create": ("projects.manage",),
+        "update": ("projects.manage",),
+        "partial_update": ("projects.manage",),
+        "destroy": ("projects.manage",),
+        "assign_user": ("projects.manage",),
+        "unassign_user": ("projects.manage",),
+        "change_status": ("projects.manage",),
+        "dispatch_alerts": ("projects.dispatch_alerts",),
+        "dispatch_reporting_reminder": ("projects.dispatch_alerts",),
+        "lifecycle_events": ("projects.view_lifecycle",),
+        "report": ("reports.export",),
+        "export": ("reports.export",),
+    }
 
     search_fields = ["project_code", "title", "state", "lga"]
     filterset_fields = [
@@ -44,9 +88,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         "budget_amount",
     ]
 
+    def get_permissions(self):
+        base_permissions = [permissions.IsAuthenticated(), HasActionCapability()]
+        if self.action == "create":
+            return base_permissions
+        return [*base_permissions, IsProjectVisibleToUser()]
+
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
             return ProjectCreateUpdateSerializer
+        if self.action == "retrieve":
+            return ProjectDetailSerializer
         return ProjectSerializer
 
     def get_queryset(self):
@@ -54,23 +106,86 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Restrict project visibility based on user role
         """
         user = self.request.user
+        queryset = super().get_queryset()
+
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                "milestones",
+                "tranches",
+                "fraud_flags",
+                "evidence_submissions",
+                "geofenceexceptionrequest_set",
+            )
 
         if user.is_superuser:
-            return super().get_queryset()
+            return queryset
 
         user_roles = set(user.roles.values_list("code", flat=True))
 
         # High-level roles see all projects
-        if user_roles.intersection({"SUPER_ADMIN", "PROGRAM_DIRECTOR", "AUDITOR"}):
-            return super().get_queryset()
+        if user_roles.intersection(HIGH_PRIVILEGE_ROLE_CODES):
+            return queryset
 
         # Others see only assigned projects
-        return super().get_queryset().filter(
+        return queryset.filter(
             assignments__user=user,
             assignments__is_active=True
         ).distinct()
 
+    def get_throttles(self):
+        if self.action in ("report", "export"):
+            return [ReportExportThrottle()]
+        return super().get_throttles()
+
+    @action(detail=True, methods=["get"])
+    def report(self, request, pk=None):
+        """PDF monitoring report for funders and auditors."""
+        project = self.get_object()
+        generated_at = timezone.localtime()
+        user_label = request.user.full_name or request.user.email
+        data = collect_project_report(project, user=request.user)
+        pdf, fingerprint = render_project_report_pdf(
+            data, generated_by=user_label, generated_at=generated_at.strftime("%d %b %Y %H:%M %Z")
+        )
+        AuditService.log_event(
+            event_type="PROJECT_REPORT_EXPORTED",
+            actor=request.user,
+            project=project,
+            action="EXPORT",
+            object_type="Project",
+            object_id=str(project.id),
+            metadata={"format": "pdf", "fingerprint": fingerprint},
+            request=request,
+        )
+        filename = f"{project.project_code}-report-{generated_at:%Y%m%d-%H%M}.pdf"
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["X-Report-Fingerprint"] = fingerprint
+        return response
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        """CSV of every project the user can see, honouring the list filters."""
+        projects = self.filter_queryset(self.get_queryset())
+        generated_at = timezone.localtime()
+        body = export_projects_csv(projects)
+        AuditService.log_event(
+            event_type="PROJECT_PORTFOLIO_EXPORTED",
+            actor=request.user,
+            action="EXPORT",
+            object_type="Project",
+            object_id="",
+            metadata={"format": "csv", "rows": projects.count(), "filters": dict(request.query_params)},
+            request=request,
+        )
+        response = HttpResponse(CSV_BOM + body, content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="provetrack-projects-{generated_at:%Y%m%d-%H%M}.csv"'
+        return response
+
     def perform_create(self, serializer):
+        initial_status = serializer.validated_data.get("current_status", ProjectStatus.NOT_STARTED)
+        if initial_status not in INITIAL_PROJECT_STATUSES:
+            raise ValidationError({"current_status": "New projects must start as NOT_STARTED or ACTIVE."})
         project = serializer.save(created_by=self.request.user)
 
         # Automatically assign creator as M&E Officer
@@ -80,6 +195,84 @@ class ProjectViewSet(viewsets.ModelViewSet):
             assignment_role="M_E_OFFICER",
             assigned_by=self.request.user,
         )
+        ProjectService.refresh_metrics(project)
+
+        AuditService.log_event(
+            event_type="PROJECT_CREATED",
+            actor=self.request.user,
+            project=project,
+            action="CREATE",
+            object_type="Project",
+            object_id=str(project.id),
+            after_state=AuditService.snapshot_model(
+                project,
+                fields=[
+                    "id",
+                    "project_code",
+                    "title",
+                    "agency",
+                    "contractor",
+                    "current_status",
+                    "risk_status",
+                    "state",
+                    "lga",
+                    "budget_amount",
+                ],
+            ),
+            request=self.request,
+        )
+
+    def perform_update(self, serializer):
+        project = serializer.instance
+        self._ensure_can_manage_project(project)
+        before_state = AuditService.snapshot_model(project, fields=PROJECT_AUDIT_FIELDS)
+
+        # Route status changes through ProjectService so they land in status history
+        # and the lifecycle log, exactly like the change_status action.
+        new_status = serializer.validated_data.pop("current_status", project.current_status)
+        project = serializer.save()
+        if new_status != project.current_status:
+            ProjectService.change_status(
+                project=project,
+                to_status=new_status,
+                user=self.request.user,
+                reason="Status changed via project edit.",
+            )
+        # Budget and end-date edits move the financial % and delay figures.
+        ProjectService.refresh_metrics(project)
+
+        AuditService.log_event(
+            event_type="PROJECT_UPDATED",
+            actor=self.request.user,
+            project=project,
+            action="UPDATE",
+            object_type="Project",
+            object_id=str(project.id),
+            before_state=before_state,
+            after_state=AuditService.snapshot_model(project, fields=PROJECT_AUDIT_FIELDS),
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance):
+        self._ensure_can_manage_project(instance)
+        if instance.disbursements.exists():
+            raise PermissionDenied("Projects with recorded disbursements cannot be deleted.")
+        before_state = AuditService.snapshot_model(instance, fields=PROJECT_AUDIT_FIELDS)
+        project_id = instance.id
+        instance.delete()
+        AuditService.log_event(
+            event_type="PROJECT_DELETED",
+            actor=self.request.user,
+            action="DELETE",
+            object_type="Project",
+            object_id=str(project_id),
+            before_state=before_state,
+            request=self.request,
+        )
+
+    def _ensure_can_manage_project(self, project):
+        if not is_project_managed_by_user(project, self.request.user):
+            raise PermissionDenied("You do not have permission to manage this project.")
 
     # -----------------------------
     # 🔹 Custom Actions
@@ -100,6 +293,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Assign a user to a project
         """
         project = self.get_object()
+        self._ensure_can_manage_project(project)
 
         user_id = request.data.get("user_id")
         role = request.data.get("assignment_role")
@@ -107,6 +301,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not user_id or not role:
             return Response(
                 {"detail": "user_id and assignment_role are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_user = User.objects.filter(id=user_id, is_active=True).first()
+        if target_user is None:
+            return Response(
+                {"detail": "Specified user does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if role not in ASSIGNABLE_PROJECT_ROLES:
+            return Response(
+                {"detail": "Invalid assignment role."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # The project role must match a role the user actually holds, otherwise an
+        # assignment could be used to escalate privileges on this project.
+        if not target_user.is_superuser and role not in get_user_role_codes(target_user):
+            return Response(
+                {"detail": "User does not hold the requested role."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -124,6 +339,21 @@ class ProjectViewSet(viewsets.ModelViewSet):
             assignment.is_active = True
             assignment.save(update_fields=["is_active"])
 
+        AuditService.log_event(
+            event_type="PROJECT_ASSIGNMENT_UPDATED" if not created else "PROJECT_ASSIGNMENT_CREATED",
+            actor=request.user,
+            project=project,
+            action="ASSIGN_USER",
+            object_type="ProjectAssignment",
+            object_id=str(assignment.id),
+            after_state=AuditService.snapshot_model(
+                assignment,
+                fields=["id", "project", "user", "assignment_role", "is_active", "assigned_by"],
+            ),
+            metadata={"assigned_user_id": user_id, "assignment_role": role},
+            request=request,
+        )
+
         return Response({
             "detail": "User assigned successfully",
             "assignment_id": assignment.id,
@@ -135,6 +365,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Deactivate user assignment
         """
         project = self.get_object()
+        self._ensure_can_manage_project(project)
         user_id = request.data.get("user_id")
 
         assignment = ProjectAssignment.objects.filter(
@@ -149,8 +380,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        before_state = AuditService.snapshot_model(
+            assignment,
+            fields=["id", "project", "user", "assignment_role", "is_active", "assigned_by"],
+        )
         assignment.is_active = False
         assignment.save(update_fields=["is_active"])
+
+        AuditService.log_event(
+            event_type="PROJECT_ASSIGNMENT_REMOVED",
+            actor=request.user,
+            project=project,
+            action="UNASSIGN_USER",
+            object_type="ProjectAssignment",
+            object_id=str(assignment.id),
+            before_state=before_state,
+            after_state=AuditService.snapshot_model(
+                assignment,
+                fields=["id", "project", "user", "assignment_role", "is_active", "assigned_by"],
+            ),
+            metadata={"unassigned_user_id": user_id},
+            request=request,
+        )
 
         return Response({"detail": "User unassigned successfully"})
 
@@ -160,12 +411,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Change project status (audited)
         """
         project = self.get_object()
+        self._ensure_can_manage_project(project)
         to_status = request.data.get("status")
         reason = request.data.get("reason", "")
 
         if not to_status:
             return Response(
                 {"detail": "status is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if to_status not in ProjectStatus.values:
+            return Response(
+                {"detail": "Invalid project status."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -176,4 +434,58 @@ class ProjectViewSet(viewsets.ModelViewSet):
             reason=reason,
         )
 
+        project.refresh_from_db(fields=["current_status"])
+
         return Response({"detail": "Project status updated"})
+
+    @action(detail=True, methods=["post"], url_path="dispatch-alerts")
+    def dispatch_alerts(self, request, pk=None):
+        project = self.get_object()
+        self._ensure_can_manage_project(project)
+        queue = str(request.data.get("queue", "")).lower() in {"1", "true", "yes"}
+        if queue:
+            dispatch_project_alerts_task.delay(project.id)
+            return Response(
+                {
+                    "detail": "Project alert dispatch queued.",
+                    "project_id": project.id,
+                    "queued": True,
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
+        alerts = AnalyticsService.build_project_alerts(project)
+
+        if not alerts:
+            return Response({"detail": "No active alerts to dispatch.", "notifications_created": 0})
+
+        notifications = NotificationService.notify_project_alerts(project, alerts)
+        return Response(
+            {
+                "detail": "Project alerts dispatched.",
+                "notifications_created": len(notifications),
+                "alerts": alerts,
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="dispatch-reporting-reminder")
+    def dispatch_reporting_reminder(self, request, pk=None):
+        project = self.get_object()
+        self._ensure_can_manage_project(project)
+
+        notifications = NotificationService.notify_reporting_compliance(project)
+        if not notifications:
+            return Response({"detail": "No active reporting reminder for this project.", "notifications_created": 0})
+
+        return Response(
+            {
+                "detail": "Reporting reminder dispatched.",
+                "notifications_created": len(notifications),
+            }
+        )
+
+    @action(detail=True, methods=["get"], url_path="lifecycle-events")
+    def lifecycle_events(self, request, pk=None):
+        project = self.get_object()
+        events = project.lifecycle_events.select_related("created_by").all()
+        return Response(ProjectLifecycleEventSerializer(events, many=True).data)

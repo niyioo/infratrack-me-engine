@@ -11,6 +11,7 @@ export type User = {
   last_name: string;
   full_name: string;
   roles: Role[];
+  capabilities?: string[];
 };
 
 export type LoginResponse = {

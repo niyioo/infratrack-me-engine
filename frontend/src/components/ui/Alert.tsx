@@ -7,7 +7,7 @@ type Props = {
 };
 
 const styles = {
-  info: "border-blue-200 bg-blue-50 text-blue-800",
+  info: "border-accent/20 bg-accent-soft text-brand-strong",
   success: "border-emerald-200 bg-emerald-50 text-emerald-800",
   warning: "border-amber-200 bg-amber-50 text-amber-800",
   error: "border-red-200 bg-red-50 text-red-800"
