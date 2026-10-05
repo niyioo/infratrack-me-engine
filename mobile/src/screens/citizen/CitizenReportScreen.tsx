@@ -403,7 +403,7 @@ export default function CitizenReportScreen() {
               title="Share code"
               variant="secondary"
               onPress={() =>
-                Share.share({ message: `Civitness report ${result.tracking_code} — ${result.project_title}` })
+                Share.share({ message: `ProveTrack report ${result.tracking_code} — ${result.project_title}` })
               }
             />
             <AppButton

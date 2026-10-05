@@ -1,5 +1,5 @@
 {
-  "name": "civitness-demo-recorder",
+  "name": "provetrack-demo-recorder",
   "private": true,
   "description": "Records a narrated walkthrough video of the citizen-report flow",
   "scripts": {

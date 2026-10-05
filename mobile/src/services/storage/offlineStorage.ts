@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { OfflineEvidenceItem } from "@/features/evidence/types";
 
-const OFFLINE_QUEUE_KEY = "civitness_offline_evidence_queue";
+const OFFLINE_QUEUE_KEY = "provetrack_offline_evidence_queue";
 // Key used before the app was renamed. Unsynced evidence saved under it must
 // survive the update, so it's moved across on first read.
 const LEGACY_OFFLINE_QUEUE_KEY = "infratrack_offline_evidence_queue";

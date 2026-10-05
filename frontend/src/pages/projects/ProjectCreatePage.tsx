@@ -31,7 +31,7 @@ export function ProjectCreatePage() {
       const project = await createProject.mutateAsync(payload);
       navigate(`/projects/${project.id}`);
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, "Civitness could not create the project right now."));
+      setSubmitError(getApiErrorMessage(error, "ProveTrack could not create the project right now."));
     }
   }
 
@@ -53,7 +53,7 @@ export function ProjectCreatePage() {
         <QueryStateCard
           state="error"
           title="Project form is missing reference data"
-          description="Civitness could not load the active agency and contractor directories needed for project setup."
+          description="ProveTrack could not load the active agency and contractor directories needed for project setup."
         />
       </PageShell>
     );

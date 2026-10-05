@@ -1,4 +1,4 @@
-// Records the staff-side Civitness walkthrough: triage, portfolio map, project
+// Records the staff-side ProveTrack walkthrough: triage, portfolio map, project
 // report, QA pass mark and the finance release check. Nothing is approved,
 // released or changed, so the demo data stays reusable.
 // Run: node record-showcase.js <out.mp4>   (stack running on :5173 / :8000;
@@ -15,7 +15,7 @@ const API = "http://localhost:8000/api";
 const PASSWORD = "Password123!"; // seed demo accounts (README)
 const VIEWPORT = { width: 1600, height: 900 };
 const TOTAL_STEPS = 5;
-const outFile = path.resolve(process.argv[2] || path.join(__dirname, "video", "civitness-staff.mp4"));
+const outFile = path.resolve(process.argv[2] || path.join(__dirname, "video", "provetrack-staff.mp4"));
 
 const caption = (page, opts) => captionStep(page, { total: TOTAL_STEPS, ...opts });
 const login = (page, email) => loginAs(page, STAFF, email, PASSWORD);
@@ -24,7 +24,7 @@ async function projectId(code) {
   const token = await fetch(`${API}/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "admin@civitness.local", password: PASSWORD }),
+    body: JSON.stringify({ email: "admin@provetrack.local", password: PASSWORD }),
   }).then((r) => r.json()).then((d) => d.access);
   const data = await fetch(`${API}/projects/?search=${code}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json());
   const rows = Array.isArray(data) ? data : data.results;
@@ -37,7 +37,7 @@ async function titleCard(page, { eyebrow, title, sub, hold }) {
     background:linear-gradient(135deg,#0B1220,#13233F);font-family:'Segoe UI',system-ui,sans-serif;color:#fff">
     <div style="padding:0 140px">
       <div style="font:700 22px/1 'Segoe UI';letter-spacing:.14em;color:#14B8A6;text-transform:uppercase">${eyebrow}</div>
-      <div style="margin-top:26px;font:800 92px/1 'Segoe UI';letter-spacing:-.03em"><span>Civi</span><span style="color:#14B8A6">tness</span></div>
+      <div style="margin-top:26px;font:800 92px/1 'Segoe UI';letter-spacing:-.03em"><span>Prove</span><span style="color:#14B8A6">Track</span></div>
       <div style="margin-top:22px;font:600 34px/1.3 'Segoe UI';color:#E2E8F0">${title}</div>
       <div style="margin-top:20px;font:400 26px/1.45 'Segoe UI';color:#94A3B8;max-width:1100px">${sub}</div>
     </div></body></html>`);
@@ -63,7 +63,7 @@ async function titleCard(page, { eyebrow, title, sub, hold }) {
   const stopCapture = await startScreencast(context, page, FRAMES, VIEWPORT);
 
   // ── 1. Triage ───────────────────────────────────────────────────────────
-  await login(page, "admin@civitness.local");
+  await login(page, "admin@provetrack.local");
   await page.goto(`${STAFF}/citizen-reports`);
   const report = page.locator("main button").filter({ hasText: "Ikorodu" }).first();
   await report.waitFor();
@@ -105,7 +105,7 @@ async function titleCard(page, { eyebrow, title, sub, hold }) {
 
   // ── 4. QA pass mark ─────────────────────────────────────────────────────
   await logout(page);
-  await login(page, "qa@civitness.local");
+  await login(page, "qa@provetrack.local");
   await page.goto(`${STAFF}/milestones/review`);
   const passMark = page.getByText(/pass mark \d+\/\d+/).first();
   await passMark.waitFor();
@@ -117,7 +117,7 @@ async function titleCard(page, { eyebrow, title, sub, hold }) {
 
   // ── 5. Finance release check ────────────────────────────────────────────
   await logout(page);
-  await login(page, "finance@civitness.local");
+  await login(page, "finance@provetrack.local");
   await page.goto(`${STAFF}/finance/queue`);
   const tranche = page.locator("main button").filter({ hasText: "INF-OND-0001" }).first();
   await tranche.waitFor();
@@ -132,8 +132,8 @@ async function titleCard(page, { eyebrow, title, sub, hold }) {
 
   // ── Outro ───────────────────────────────────────────────────────────────
   await titleCard(page, { eyebrow: "Report → Verify → Evidence → Track → Resolve",
-    title: "Citizen Reporting &amp; Infrastructure Accountability Platform",
-    sub: "Every citizen can be a witness. Every report deserves action.", hold: 5000 });
+    title: "Field Intelligence &amp; Accountability Platform",
+    sub: "Track Progress. Prove Delivery.", hold: 5000 });
 
   const frameCount = await stopCapture();
   await context.close();

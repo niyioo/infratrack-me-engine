@@ -102,4 +102,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build container image
-        run: docker build -t civitness-citizen-portal:ci citizen-portal
+        run: docker build -t provetrack-citizen-portal:ci citizen-portal

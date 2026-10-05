@@ -372,7 +372,7 @@ export function ProjectDetailPage() {
               <QueryStateCard
                 state="error"
                 title="Assignments unavailable"
-                description="Civitness could not load the assignment roster."
+                description="ProveTrack could not load the assignment roster."
               />
             ) : (
               <ProjectAssignmentsPanel assignments={assignments} />

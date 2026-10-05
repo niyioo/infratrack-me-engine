@@ -149,7 +149,7 @@ export function VendorsPage() {
       setAgencyFeedback({ message: "Funding agency added to the directory.", variant: "success" });
     } catch (error) {
       setAgencyFeedback({
-        message: getApiErrorMessage(error, "Civitness could not create the funding agency right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not create the funding agency right now."),
         variant: "error"
       });
     }
@@ -176,7 +176,7 @@ export function VendorsPage() {
       setEditingAgency(null);
     } catch (error) {
       setAgencyFeedback({
-        message: getApiErrorMessage(error, "Civitness could not update the funding agency right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not update the funding agency right now."),
         variant: "error"
       });
     }
@@ -193,7 +193,7 @@ export function VendorsPage() {
       setAgencyPendingDelete(null);
     } catch (error) {
       setAgencyFeedback({
-        message: getApiErrorMessage(error, "Civitness could not delete this funding agency right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not delete this funding agency right now."),
         variant: "error"
       });
     }
@@ -214,7 +214,7 @@ export function VendorsPage() {
       setContractorFeedback({ message: "Contractor added to the directory.", variant: "success" });
     } catch (error) {
       setContractorFeedback({
-        message: getApiErrorMessage(error, "Civitness could not create the contractor right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not create the contractor right now."),
         variant: "error"
       });
     }
@@ -241,7 +241,7 @@ export function VendorsPage() {
       setEditingContractor(null);
     } catch (error) {
       setContractorFeedback({
-        message: getApiErrorMessage(error, "Civitness could not update the contractor right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not update the contractor right now."),
         variant: "error"
       });
     }
@@ -258,7 +258,7 @@ export function VendorsPage() {
       setContractorPendingDelete(null);
     } catch (error) {
       setContractorFeedback({
-        message: getApiErrorMessage(error, "Civitness could not delete this contractor right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not delete this contractor right now."),
         variant: "error"
       });
     }
@@ -282,7 +282,7 @@ export function VendorsPage() {
         <QueryStateCard
           state="error"
           title="Vendor directories unavailable"
-          description="Civitness could not load agencies or contractors right now."
+          description="ProveTrack could not load agencies or contractors right now."
         />
       </PageShell>
     );

@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
-Write-Host "Starting Civitness local stack..."
+Write-Host "Starting ProveTrack local stack..."
 
 & (Join-Path $PSScriptRoot "start-backend-stack.ps1")
 & (Join-Path $PSScriptRoot "start-frontend.ps1")

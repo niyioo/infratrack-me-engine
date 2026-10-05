@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CivitnessBrand } from "@/components/brand/CivitnessBrand";
+import { ProveTrackBrand } from "@/components/brand/ProveTrackBrand";
 import { colors, radius } from "@/lib/theme/tokens";
 
 function TabIcon({
@@ -64,7 +64,7 @@ export default function MainLayout() {
           headerStyle: {
             backgroundColor: colors.white,
           },
-          headerTitle: () => <CivitnessBrand size="sm" />,
+          headerTitle: () => <ProveTrackBrand size="sm" />,
           headerShadowVisible: false,
           headerTintColor: colors.ink,
         }}

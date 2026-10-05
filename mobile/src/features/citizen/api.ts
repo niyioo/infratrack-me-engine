@@ -44,7 +44,7 @@ type Paginated<T> = { count: number; next: string | null; results: T[] };
 /** Plain-language message for a failed public request. */
 export function citizenErrorMessage(error: unknown) {
   if (!axios.isAxiosError(error)) return "Something went wrong. Please try again.";
-  if (!error.response) return "Can't reach Civitness. Check your connection and try again.";
+  if (!error.response) return "Can't reach ProveTrack. Check your connection and try again.";
   const { status, data } = error.response;
   if (status === 429) return "Too many requests from your connection. Please wait a while and try again.";
   if (status === 404) return "We couldn't find that. Check the code and try again.";

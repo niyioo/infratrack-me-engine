@@ -9,7 +9,7 @@ import { AppBadge } from "@/components/ui/AppBadge";
 import { AppButton } from "@/components/ui/AppButton";
 import { AppCard } from "@/components/ui/AppCard";
 import { AppInput } from "@/components/ui/AppInput";
-import { CivitnessBrand } from "@/components/brand/CivitnessBrand";
+import { ProveTrackBrand } from "@/components/brand/ProveTrackBrand";
 import { colors, spacing, typography } from "@/lib/theme/tokens";
 import { fetchCurrentUser, login } from "@/features/auth/api";
 import { setStoredUser, setTokens } from "@/features/auth/storage";
@@ -51,7 +51,7 @@ export default function LoginScreen() {
       } else if (status === 429) {
         setError("Too many sign-in attempts. Wait a minute and try again.");
       } else if (axios.isAxiosError(err) && !err.response) {
-        setError("Can't reach the Civitness server. Check your connection and try again.");
+        setError("Can't reach the ProveTrack server. Check your connection and try again.");
       } else {
         setError("Sign-in failed on the server. Please try again shortly.");
       }
@@ -75,10 +75,10 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.hero, { paddingTop: insets.top + spacing.xl }]}>
-          <CivitnessBrand size="lg" stacked light />
+          <ProveTrackBrand size="lg" stacked light />
           <AppBadge label="Secure Access" tone="info" />
           <Text style={styles.heroSubtitle}>
-            Citizen Reporting & Infrastructure Accountability Platform. Every citizen can be a witness.
+            Field Intelligence & Accountability Platform. Track progress. Prove delivery.
           </Text>
         </View>
 
@@ -86,7 +86,7 @@ export default function LoginScreen() {
           <AppCard>
             <View style={styles.formHeader}>
               <Text style={styles.formTitle}>Sign in</Text>
-              <Text style={styles.formSubtitle}>Use your authorized Civitness account to continue.</Text>
+              <Text style={styles.formSubtitle}>Use your authorized ProveTrack account to continue.</Text>
             </View>
 
             <View style={styles.formFields}>

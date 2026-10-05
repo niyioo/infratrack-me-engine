@@ -67,7 +67,7 @@ export function ProjectsPage() {
       setProjectPendingDelete(null);
     } catch (error) {
       setFeedback({
-        message: getApiErrorMessage(error, "Civitness could not delete this project right now."),
+        message: getApiErrorMessage(error, "ProveTrack could not delete this project right now."),
         variant: "error"
       });
     }

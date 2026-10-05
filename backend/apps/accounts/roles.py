@@ -1,4 +1,4 @@
-"""The fixed set of roles Civitness's permissions are written against (see
+"""The fixed set of roles ProveTrack's permissions are written against (see
 apps.common.permissions.ROLE_CAPABILITIES)."""
 
 SYSTEM_ROLES = [

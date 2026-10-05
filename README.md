@@ -1,12 +1,12 @@
-# Civitness
+# ProveTrack
 
-**Citizen Reporting & Infrastructure Accountability Platform**
+**Field Intelligence & Accountability Platform**
 
-*Every citizen can be a witness. Every report deserves action.*
+*Track Progress. Prove Delivery.*
 
 [![CI](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/niyioo/infratrack-me-engine/actions/workflows/ci.yml)
 
-Civitness lets citizens report on public infrastructure projects anonymously, and gives government teams the tools to verify field evidence, act on those reports and tie every payment to geo-verified progress.
+ProveTrack is a field intelligence and accountability platform that helps organisations track projects, verify on-site progress, capture evidence and turn citizen reports into actionable outcomes. Every payment is tied to geo-verified progress.
 
 > **No verified milestone → No QA approval → No disbursement**
 
@@ -14,7 +14,7 @@ Civitness lets citizens report on public infrastructure projects anonymously, an
 
 ## What It Does
 
-Civitness replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
+ProveTrack replaces contractor self-reporting with a rules-driven digital workflow. Funds stay locked until field evidence is captured, geo-verified, and QA-approved.
 
 Built for ministries, donor-funded programs, public works teams, and institutional oversight units.
 
@@ -50,7 +50,7 @@ python -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate o
 pip install -r requirements.txt
 # Configure backend/.env (see README details)
 python manage.py migrate
-python manage.py seed_civitness
+python manage.py seed_provetrack
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -112,10 +112,10 @@ Set `NUM_PROXIES` correctly in production, or every citizen will appear to share
 
 | Role | Email |
 |---|---|
-| Admin | `admin@civitness.local` |
-| Field Officer | `field@civitness.local` |
-| QA Reviewer | `qa@civitness.local` |
-| Finance | `finance@civitness.local` |
+| Admin | `admin@provetrack.local` |
+| Field Officer | `field@provetrack.local` |
+| QA Reviewer | `qa@provetrack.local` |
+| Finance | `finance@provetrack.local` |
 
 **Password:** `Password123!`
 

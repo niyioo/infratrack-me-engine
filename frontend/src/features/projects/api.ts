@@ -57,5 +57,5 @@ export async function exportProjectsCsv(params?: Record<string, string>) {
     params,
     responseType: "blob"
   });
-  saveBlobResponse(response, "civitness-projects.csv");
+  saveBlobResponse(response, "provetrack-projects.csv");
 }

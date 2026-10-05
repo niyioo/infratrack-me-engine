@@ -1,4 +1,4 @@
-type CivitnessLogoProps = {
+type ProveTrackLogoProps = {
   className?: string;
   showWordmark?: boolean;
   size?: number;
@@ -30,11 +30,11 @@ function SymbolMark({ size = 44 }: { size?: number }) {
   );
 }
 
-export function CivitnessLogo({
+export function ProveTrackLogo({
   className = "",
   showWordmark = true,
   size = 44,
-}: CivitnessLogoProps) {
+}: ProveTrackLogoProps) {
   if (!showWordmark) {
     return <SymbolMark size={size} />;
   }
@@ -43,8 +43,8 @@ export function CivitnessLogo({
     <div className={`inline-flex items-center gap-3 ${className}`}>
       <SymbolMark size={size} />
       <div className="text-[1.6rem] font-extrabold leading-none tracking-[-0.05em]">
-        <span style={{ color: "#0F3D78" }}>Civi</span>
-        <span style={{ color: "#0F9C92" }}>tness</span>
+        <span style={{ color: "#0F3D78" }}>Prove</span>
+        <span style={{ color: "#0F9C92" }}>Track</span>
       </div>
     </div>
   );

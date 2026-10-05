@@ -1,7 +1,7 @@
 import type { User } from "./types";
 
-const AUTH_USER_KEY = "civitness_user";
-const AUTH_EVENT_NAME = "civitness-auth-changed";
+const AUTH_USER_KEY = "provetrack_user";
+const AUTH_EVENT_NAME = "provetrack-auth-changed";
 type AuthSnapshot = {
   user: User | null;
   accessToken: string | null;

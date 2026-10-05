@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Civitness",
-    "slug": "civitness-mobile",
-    "scheme": "civitness",
+    "name": "ProveTrack",
+    "slug": "provetrack-mobile",
+    "scheme": "provetrack",
     "version": "1.0.0",
     "icon": "./assets/app-icon.png",
     "newArchEnabled": true,
@@ -12,7 +12,7 @@
       "**/*"
     ],
     "android": {
-      "package": "com.civitness.app",
+      "package": "com.provetrack.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -24,11 +24,11 @@
       "versionCode": 1
     },
     "ios": {
-      "bundleIdentifier": "com.civitness.app",
+      "bundleIdentifier": "com.provetrack.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Civitness uses the camera for live evidence capture.",
-        "NSLocationWhenInUseUsageDescription": "Civitness uses location to verify field evidence.",
-        "NSPhotoLibraryUsageDescription": "Civitness lets citizens attach an existing photo to an anonymous report."
+        "NSCameraUsageDescription": "ProveTrack uses the camera for live evidence capture.",
+        "NSLocationWhenInUseUsageDescription": "ProveTrack uses location to verify field evidence.",
+        "NSPhotoLibraryUsageDescription": "ProveTrack lets citizens attach an existing photo to an anonymous report."
       }
     },
     "plugins": [

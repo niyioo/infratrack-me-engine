@@ -3,5 +3,5 @@ export type AppStore = {
 };
 
 export const appStore: AppStore = {
-  appName: import.meta.env.VITE_APP_NAME || "Civitness"
+  appName: import.meta.env.VITE_APP_NAME || "ProveTrack"
 };
